@@ -17,13 +17,27 @@ describe("UniV2Optimizer Unit Tests", function () {
     const UniswapV2RouterAbi = require("./external_abi/Router.json");
 
     /* Adresses */
+    // WMATIC-MUST LP
     const StakingAddress = "0x80676b414a905De269D0ac593322Af821b683B92";
+
+    // MUST
     const RewardAddress =  "0x9C78EE466D6Cb57A4d01Fd887D2b5dFb2D46288f";
+
+    // WMATIC
     const TokenAAddress = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
+
+    // MUST
     const TokenBAddress = "0x9C78EE466D6Cb57A4d01Fd887D2b5dFb2D46288f";
-    const TokenCAddress = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
+
+    // WETH
+    const TokenCAddress = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619";
+
+    // ComethSwap WMATIC-MUST LP Staking Pool
     const StakingRewardAddress = "0x2328c83431a29613b1780706E0Af3679E3D04afd";
+
+    // ComethSwap Router
     const UniswapV2RouterAddress = "0x93bcDc45f7e62f89a8e901DC4A0E2c6C427D9F25";
+
 
     /* Provider */
     const provider = new ethers.providers.JsonRpcProvider();
@@ -42,8 +56,8 @@ describe("UniV2Optimizer Unit Tests", function () {
 
     before(async function () {
 
-        // USDC Whale           : 0xB78e90E2eC737a2C0A24d68a0e54B410FFF3bD6B
-        // MUST-MATIC LP Whale  : 0xdA8479E5b8A273A403148a779Fbb8903DC2C739d
+        // WETH Whale           : 0xd3d176F7e4b43C70a68466949F6C64F06Ce75BB9
+        // LP Whale             : 0xdA8479E5b8A273A403148a779Fbb8903DC2C739d
         // WMATIC Whale         : 0x84D34f4f83a87596Cd3FB6887cFf8F17Bf5A7B83
 
         // Impersonating a whale address to provision the owner account with necessary tokens
@@ -51,7 +65,14 @@ describe("UniV2Optimizer Unit Tests", function () {
             method: "hardhat_impersonateAccount",
             params: ["0xdA8479E5b8A273A403148a779Fbb8903DC2C739d"],
           });
-        whale = await ethers.getSigner("0xdA8479E5b8A273A403148a779Fbb8903DC2C739d");   
+        whaleLP = await ethers.getSigner("0xdA8479E5b8A273A403148a779Fbb8903DC2C739d");
+        
+        await hre.network.provider.request({
+            method: "hardhat_impersonateAccount",
+            params: ["0xd3d176F7e4b43C70a68466949F6C64F06Ce75BB9"],
+          });
+        whaleWETH = await ethers.getSigner("0xd3d176F7e4b43C70a68466949F6C64F06Ce75BB9");   
+
         [owner, addr1, addr2, _] = await ethers.getSigners();   
 
         // Deploying the contract under test
@@ -73,91 +94,130 @@ describe("UniV2Optimizer Unit Tests", function () {
         const weiAmountToDeposit = ethers.utils.parseEther(amountToDeposit.toString());
 
         // Transfering 10 LP tokens from a whale address to the UniV2Optimizer owner address
-        await staking.connect(whale).transfer(owner.address, weiAmountToDeposit);
+        await staking.connect(whaleLP).transfer(owner.address, weiAmountToDeposit);
 
-        // Saving the balances before the staking operation
+        // Checking the balances before the staking operation
         const userBalBefore = await staking.balanceOf(owner.address);      
         const poolBalBefore = await staking.balanceOf(stakingReward.address);
         
         // Approving the 10 LP tokens to be spent by the UniV2Optimizer
         await staking.connect(owner).approve(uniV2Optimizer.address, weiAmountToDeposit);
+
+        // Staking the 10 LP tokens on the UniV2Optimizer
         await uniV2Optimizer.connect(owner).stake(weiAmountToDeposit);
         
-        // Saving the balances after the staking operation
+        // Checking the balances after the staking operation
         const userBalAfter = await staking.balanceOf(owner.address);      
         const poolBalAfter = await staking.balanceOf(stakingReward.address);      
 
-        // Assertion : Staking Pool Balance After = Staking Pool Balance Before + 10
+        // Assertion #1 : Staking Pool Balance After = Staking Pool Balance Before + 10
         expect(poolBalAfter).to.equal(poolBalBefore.add(weiAmountToDeposit))
 
-        // Assertion : User Balance Before = User Balance Before - 10
+        // Assertion #2 : User Balance Before = User Balance Before - 10
         expect(userBalAfter).to.equal(userBalBefore.sub(weiAmountToDeposit))
-
     });
   
-   //it("should not be able to withdraw 20 LP token from the Staking Reward Pool", async () => {      
-   //    const amountToWithdraw = 20;
-   //    const weiAmountToWithdraw = ethers.utils.parseEther(amountToWithdraw.toString());        
-   //    await truffleAssert.reverts(
-   //        uniV2Optimizer.withdraw(weiAmountToWithdraw)
-   //    );
-   //});
+   it("should not be able to withdraw 20 LP token from the Staking Reward Pool", async () => { 
+       
+        // Quantity to withdraw for this test
+        const amountToWithdraw = 20;
+        const weiAmountToWithdraw = ethers.utils.parseEther(amountToWithdraw.toString());
+        
+        // Assertion : Transaction should revert as the owner staked balance is lower than the quantity withdrawn
+        await truffleAssert.reverts(uniV2Optimizer.withdraw(weiAmountToWithdraw));
+    });
   
     
-//    it("should compound the Reward into Staking", async () => {
-//       
-//        const poolLpBal_before = ethers.utils.formatEther(await staking.balanceOf(stakingReward.address));
-//
-//        await uniV2Optimizer.harvest();
-//        const poolLpBal_after = ethers.utils.formatEther(await staking.balanceOf(stakingReward.address));
-//        expect(poolLpBal_before < poolLpBal_after).to.equal(true);
-//
-//    });
-//    it("should withdraw 10 LP token from the Staking Reward Pool", async () => {
-//        const amountToWithdraw = 10;
-//        const weiAmountToWithdraw = ethers.utils.parseEther(amountToWithdraw.toString());
-//
-//        const userLpBal_before = ethers.utils.formatEther(await staking.balanceOf(accounts[0]));
-//        const poolLpBal_before = ethers.utils.formatEther(await staking.balanceOf(stakingReward.address));
-//
-//        await uniV2Optimizer.withdraw(weiAmountToWithdraw);
-//
-//        const userLpBal_after = ethers.utils.formatEther(await staking.balanceOf(accounts[0]));
-//        const poolLpBal_after = ethers.utils.formatEther(await staking.balanceOf(stakingReward.address));
-//       
-//        expect(userLpBal_after - userLpBal_before).to.equal(amountToWithdraw);
-//        expect(poolLpBal_before - amountToWithdraw).to.equal(poolLpBal_after);
-//
-//
-//    });
-//    it("should withdraw all Staking and Reward tokens form the Staking Reward Pool", async () => {
-//
-//        const userLpBal_before = ethers.utils.formatEther(await staking.balanceOf(accounts[0]));
-//        const poolLpBal_before = ethers.utils.formatEther(await staking.balanceOf(stakingReward.address));
-//
-//        await uniV2Optimizer.exitAvalanche();
-//
-//        const userLpBal_after = ethers.utils.formatEther(await staking.balanceOf(accounts[0]));
-//        const poolLpBal_after = ethers.utils.formatEther(await staking.balanceOf(stakingReward.address));
-//
-//        expect(userLpBal_after > userLpBal_before).to.equal(true);
-//        expect(poolLpBal_before > poolLpBal_after).to.equal(true);
-//        
-//    });
-//
-//    it("should recover a lost TokenC from the contract", async () => { 
-//        const poolTokenCBal_before = ethers.utils.formatEther(await tokenC.balanceOf(uniV2Optimizer.address));
-//        const userTokenCBal_before = ethers.utils.formatEther(await tokenC.balanceOf(accounts[0]));
-//
-//        await uniV2Optimizer.recoverERC20(tokenC.address);
-//
-//        const poolTokenCBal_after = ethers.utils.formatEther(await tokenC.balanceOf(uniV2Optimizer.address));
-//        const userTokenCBal_after = ethers.utils.formatEther(await tokenC.balanceOf(accounts[0]));
-//
-//        expect(poolTokenCBal_before > poolTokenCBal_after).to.equal(true);
-//        expect(userTokenCBal_before < userTokenCBal_after).to.equal(true);
-//        
-//    });
+    it("should compound the Reward into more staked LP token", async () => {
+       
+        // Checking the balances before the compounding operation
+        const poolBalBefore = ethers.utils.formatEther(await staking.balanceOf(stakingReward.address));
+
+        // Compounding operation
+        await uniV2Optimizer.harvest();
+
+        // Checking the balances after the compounding operation
+        const poolBalAfter = ethers.utils.formatEther(await staking.balanceOf(stakingReward.address));
+
+        // Assertion : Staking Pool Balance After > Staking Pool Balance Before
+        expect(poolBalBefore < poolBalAfter).to.equal(true);
+    });
+
+    it("should withdraw 10 LP tokens from the Staking Reward Pool", async () => {
+        
+        // Quantity to withdraw for this test
+        const amountToWithdraw = 10;
+        const weiAmountToWithdraw = ethers.utils.parseEther(amountToWithdraw.toString());
+
+        // Checking the balances before the withdrawal operation
+        const userBalBefore = await staking.balanceOf(owner.address);
+        const poolBalBefore = await staking.balanceOf(stakingReward.address);
+
+        // Withdraw operation
+        await uniV2Optimizer.withdraw(weiAmountToWithdraw);
+
+        // Checking the balances after the withdrawal operation
+        const userBalAfter = await staking.balanceOf(owner.address);
+        const poolBalAfter = await staking.balanceOf(stakingReward.address);
+       
+        // Assertion #1 : User Balance After - User Balance Before = Withdraw Amount
+        expect(userBalAfter.sub(userBalBefore)).to.equal(weiAmountToWithdraw);
+
+        // Assertion #2 : Staking Pool Balance Before - Withdraw Amount = Staking Pool Balance After
+        expect(poolBalBefore.sub(weiAmountToWithdraw)).to.equal(poolBalAfter);
+    });
+
+    it("should withdraw all Staking and Reward tokens form the Staking Reward Pool", async () => {
+
+        // Checking the balances before the withdrawal operation
+        const userLPBalBefore = await staking.balanceOf(owner.address);
+        const userRewardBalBefore = await reward.balanceOf(owner.address);
+        const poolBalBefore = await staking.balanceOf(stakingReward.address);
+
+        // Exit Avalanche operation
+        await uniV2Optimizer.exitAvalanche();
+
+        // Checking the balances after the withdrawal operation
+        const userLPBalAfter = await staking.balanceOf(owner.address);
+        const userRewardBalAfter = await reward.balanceOf(owner.address);
+        const poolBalAfter = await staking.balanceOf(stakingReward.address);
+
+        // Assertion #1 : User LP Balance After > User LP Balance Before
+        expect(userLPBalAfter > userLPBalBefore).to.equal(true);
+       
+        // Assertion #2 : User Reward Balance After > User Reward Balance Before
+        expect(userRewardBalAfter > userRewardBalBefore).to.equal(true);
+        
+        // Assertion #3 : Staking Pool Balance Before > Staking Pool Balance After
+        expect(poolBalBefore > poolBalAfter).to.equal(true);
+    });
+
+    it("should recover the lost / airdropped TokenC from the UniV2Optimizer contract", async () => {
+
+        const amountToTransfer = 10;
+        const weiAmountToTransfer = ethers.utils.parseEther(amountToTransfer.toString());
+        await tokenC.connect(whaleWETH).transfer(uniV2Optimizer.address, weiAmountToTransfer);
+
+        // Checking the balances before the recovery operation
+        const optiTokenCBalBefore = await tokenC.balanceOf(uniV2Optimizer.address);
+        const userTokenCBalBefore = await tokenC.balanceOf(owner.address);
+
+        // ERC20 Recovery Operation
+        await uniV2Optimizer.recoverERC20(tokenC.address);
+
+        // Checking the balances after the recovery operation
+        const optiTokenCBalAfter = await tokenC.balanceOf(uniV2Optimizer.address);
+        const userTokenCBalAfter = await tokenC.balanceOf(owner.address);
+
+        // Assertion #1 : Optimizer Token C Balance Before > Optimizer Token C Balance After
+        expect(optiTokenCBalBefore > optiTokenCBalAfter).to.equal(true);
+        
+        // Assertion #2 : User Token C Balance Before < User Token C Balance After
+        expect(userTokenCBalBefore < userTokenCBalAfter).to.equal(true);
+        
+    });
+
+    // it should not be able to interact with the contract (non-owner)
 
 });
 
