@@ -170,20 +170,24 @@ contract UniV2Optimizer is Ownable {
     function _splitRewardToStaking() internal {
         if(IERC20(reward).balanceOf(address(this)) > 0){
             uint256 rewardSplit = IERC20(reward).balanceOf(address(this)).div(2);
-            IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
-                rewardSplit,
-                0,
-                rewardToTokenA,
-                address(this),
-                block.timestamp.add(600)
-            );
-            IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
-                IERC20(reward).balanceOf(address(this)),
-                0,
-                rewardToTokenB,
-                address(this),
-                block.timestamp.add(600)
-            );              
+            if(reward != tokenA){
+                IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
+                    rewardSplit,
+                    0,
+                    rewardToTokenA,
+                    address(this),
+                    block.timestamp.add(600)
+                );
+            }
+            if(reward != tokenB){
+                IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
+                    IERC20(reward).balanceOf(address(this)),
+                    0,
+                    rewardToTokenB,
+                    address(this),
+                    block.timestamp.add(600)
+                );
+            }              
         }
     }
 
