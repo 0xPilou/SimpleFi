@@ -73,7 +73,7 @@ describe("UniV2Optimizer Unit Tests", function () {
           });
         whaleWETH = await ethers.getSigner("0xd3d176F7e4b43C70a68466949F6C64F06Ce75BB9");   
 
-        [owner, addr1, addr2, _] = await ethers.getSigners();   
+        [owner, nonOwner, _] = await ethers.getSigners();   
 
         // Deploying the contract under test
         UniV2Optimizer = await ethers.getContractFactory("UniV2Optimizer");
@@ -217,7 +217,26 @@ describe("UniV2Optimizer Unit Tests", function () {
         
     });
 
-    // it should not be able to interact with the contract (non-owner)
+    it("should not be able to interact with the contract (as a non-owner)", async () => { 
+       
 
+        const amount = 10;
+        const weiAmount = ethers.utils.parseEther(amount.toString());
+
+        // Assertion : Transaction should revert as the caller is not the owner of the contract
+        await truffleAssert.reverts(uniV2Optimizer.connect(nonOwner).stake(weiAmount));
+
+        // Assertion : Transaction should revert as the caller is not the owner of the contract
+        await truffleAssert.reverts(uniV2Optimizer.connect(nonOwner).withdraw(weiAmount));
+        
+        // Assertion : Transaction should revert as the caller is not the owner of the contract
+        await truffleAssert.reverts(uniV2Optimizer.connect(nonOwner).harvest());
+
+        // Assertion : Transaction should revert as the caller is not the owner of the contract
+        await truffleAssert.reverts(uniV2Optimizer.connect(nonOwner).exitAvalanche());
+
+        // Assertion : Transaction should revert as the caller is not the owner of the contract
+        await truffleAssert.reverts(uniV2Optimizer.connect(nonOwner).recoverERC20(tokenC.address));
+    });
 });
 
