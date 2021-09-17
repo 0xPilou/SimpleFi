@@ -96,6 +96,38 @@ contract UniV2Optimizer is Ownable {
         
     }
 
+    function zap(address _tokenToZap, uint256 _amountToZap) external onlyOwner {
+        require(IERC20(_tokenToZap).balanceOf(address(msg.sender)) >= _amountToZap);
+        IERC20(_tokenToZap).safeTransferFrom(msg.sender, address(this), _amountToZap);
+        IERC20(_tokenToZap).safeApprove(uniV2RouterAddr, MAX_INT);        
+        if(_tokenToZap != tokenA){
+            address[] memory zapToTokenA = new address[](2);
+            zapToTokenA[0] = _tokenToZap;
+            zapToTokenA[1] = tokenA;
+            IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
+                _amountToZap.div(2),
+                0,
+                zapToTokenA,
+                address(this),
+                block.timestamp.add(600)
+            );
+        }
+        if(_tokenToZap != tokenB){
+            address[] memory zapToTokenB = new address[](2);
+            zapToTokenB[0] = _tokenToZap;
+            zapToTokenB[1] = tokenB;
+            IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
+                _amountToZap.div(2),
+                0,
+                zapToTokenB,
+                address(this),
+                block.timestamp.add(600)
+            );
+        }
+        _mintStaking();
+        _stakeAll();
+    }
+
     function stake(uint256 _amount) external onlyOwner {
         require(IERC20(staking).balanceOf(address(msg.sender)) >= _amount);
         IERC20(staking).safeTransferFrom(msg.sender, address(this), _amount);

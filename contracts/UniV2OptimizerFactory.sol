@@ -35,14 +35,14 @@ contract UniV2OptimizerFactory is Ownable {
         uniV2Optimizer.transferOwnership(msg.sender);
         return address(uniV2Optimizer);
     }
-
-    function harvestAll() external {
-        require(uniV2OptimizerByOwner[msg.sender].length > 0);
-        address[] memory ownerUniV2Optimizers = uniV2OptimizerByOwner[msg.sender];
-        for (uint i = 0; i < ownerUniV2Optimizers.length; i++) {
-            UniV2Optimizer(ownerUniV2Optimizers[i]).harvest();
-        }
-    }
+// COMMENTED TO SAVE ON CONTRACT SIZE --> To consider if really needed (alternative offchain solution)
+    //function harvestAll() external {
+    //    require(uniV2OptimizerByOwner[msg.sender].length > 0);
+    //    address[] memory ownerUniV2Optimizers = uniV2OptimizerByOwner[msg.sender];
+    //    for (uint i = 0; i < ownerUniV2Optimizers.length; i++) {
+    //        UniV2Optimizer(ownerUniV2Optimizers[i]).harvest();
+    //    }
+    //}
 
     function addStrategy(
         address _tokenA,
