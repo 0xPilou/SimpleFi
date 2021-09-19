@@ -96,38 +96,6 @@ contract UniV2Optimizer is Ownable {
         
     }
 
-    function zap(address _tokenToZap, uint256 _amountToZap) external onlyOwner {
-        require(IERC20(_tokenToZap).balanceOf(address(msg.sender)) >= _amountToZap);
-        IERC20(_tokenToZap).safeTransferFrom(msg.sender, address(this), _amountToZap);
-        IERC20(_tokenToZap).safeApprove(uniV2RouterAddr, MAX_INT);        
-        if(_tokenToZap != tokenA){
-            address[] memory zapToTokenA = new address[](2);
-            zapToTokenA[0] = _tokenToZap;
-            zapToTokenA[1] = tokenA;
-            IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
-                _amountToZap.div(2),
-                0,
-                zapToTokenA,
-                address(this),
-                block.timestamp.add(600)
-            );
-        }
-        if(_tokenToZap != tokenB){
-            address[] memory zapToTokenB = new address[](2);
-            zapToTokenB[0] = _tokenToZap;
-            zapToTokenB[1] = tokenB;
-            IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
-                _amountToZap.div(2),
-                0,
-                zapToTokenB,
-                address(this),
-                block.timestamp.add(600)
-            );
-        }
-        _mintStaking();
-        _stakeAll();
-    }
-
     function stake(uint256 _amount) external onlyOwner {
         require(IERC20(staking).balanceOf(address(msg.sender)) >= _amount);
         IERC20(staking).safeTransferFrom(msg.sender, address(this), _amount);
@@ -136,10 +104,28 @@ contract UniV2Optimizer is Ownable {
     
 
     function withdraw(uint256 _amount) external onlyOwner {
-        _withdraw(_amount);
+        //_withdraw(_amount);
+        IStakingRewards(stakingRewardAddr).withdraw(_amount);
+        staked = staked.sub(_amount);
         IERC20(staking).safeTransfer(msg.sender, _amount);
     }
 
+    function reinvest(address _desiredToken) external onlyOwner {
+        require(_desiredToken != reward, "Reward token is already the expected token");
+        _claimReward();
+        if(IERC20(reward).balanceOf(address(this)) > 0){
+            address[] memory rewardToDesiredToken = new address[](2);
+            rewardToDesiredToken[0] = reward;
+            rewardToDesiredToken[1] = _desiredToken;
+            IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
+                IERC20(reward).balanceOf(address(this)),
+                0,
+                rewardToDesiredToken,
+                address(this),
+                block.timestamp.add(600)
+            );
+        }     
+    }
 
     function harvest() external onlyOwner {
         _claimReward();
@@ -149,7 +135,10 @@ contract UniV2Optimizer is Ownable {
     }
    
     function exitAvalanche() external onlyOwner {
-        _exit();
+        //_exit();
+        IStakingRewards(stakingRewardAddr).exit();
+        staked = 0;
+
         _splitRewardToStaking();
         _mintStaking();
 
@@ -183,15 +172,15 @@ contract UniV2Optimizer is Ownable {
         IStakingRewards(stakingRewardAddr).stake(IERC20(staking).balanceOf(address(this)));
     }
 
-    function _withdraw(uint256 _amount) internal {
-        IStakingRewards(stakingRewardAddr).withdraw(_amount);
-        staked = staked.sub(_amount);
-    }
+    //function _withdraw(uint256 _amount) internal {
+    //    IStakingRewards(stakingRewardAddr).withdraw(_amount);
+    //    staked = staked.sub(_amount);
+    //}
 
-    function _exit() internal {
-        IStakingRewards(stakingRewardAddr).exit();
-        staked = 0;
-    }
+    //function _exit() internal {
+    //    IStakingRewards(stakingRewardAddr).exit();
+    //    staked = 0;
+    //}
 
     function _claimReward() internal {
         if(staked > 0) {

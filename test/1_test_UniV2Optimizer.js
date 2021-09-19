@@ -238,28 +238,5 @@ describe("UniV2Optimizer Unit Tests", function () {
         // Assertion : Transaction should revert as the caller is not the owner of the contract
         await truffleAssert.reverts(uniV2Optimizer.connect(nonOwner).recoverERC20(tokenC.address));
     });
-
-    it("should zap the desired amount of Token C to LP Tokens", async () => { 
-       
-        const amountToZap = 10;
-        const weiAmountToZap = ethers.utils.parseEther(amountToZap.toString());
-
-        await tokenC.connect(whaleWETH).transfer(owner.address, weiAmountToZap);
-
-        const poolBalBefore = await staking.balanceOf(stakingReward.address);
-        const userTokenCBalBefore = await tokenC.balanceOf(owner.address);
-
-        // Approving the 10 Tokens C to be spent by the UniV2Optimizer
-        await tokenC.connect(owner).approve(uniV2Optimizer.address, weiAmountToZap);
-        // Staking the 10 LP tokens on the UniV2Optimizer
-        await uniV2Optimizer.connect(owner).zap(tokenC.address, weiAmountToZap);
-
-        const poolBalAfter = await staking.balanceOf(stakingReward.address);
-        const userTokenCBalAfter = await tokenC.balanceOf(owner.address);
-
-        expect(poolBalAfter > poolBalBefore).to.equal(true);
-        expect(userTokenCBalBefore > userTokenCBalAfter).to.equal(true);
-
-    });
 });
 
