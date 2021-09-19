@@ -3,7 +3,6 @@
  */
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const truffleAssert = require('truffle-assertions');
 
 describe("AmmZap Unit Tests", function () {  
     
@@ -45,7 +44,7 @@ describe("AmmZap Unit Tests", function () {
     let ammZap;
 
     before(async function () {
-      
+       
         // WETH Whale           : 0xd3d176F7e4b43C70a68466949F6C64F06Ce75BB9
         // LP Whale             : 0xdA8479E5b8A273A403148a779Fbb8903DC2C739d
         // WMATIC Whale         : 0x84D34f4f83a87596Cd3FB6887cFf8F17Bf5A7B83
@@ -181,6 +180,5 @@ describe("AmmZap Unit Tests", function () {
         // Assertion #2 : User LP Balance Before < User LP Balance After
         expect(userLPBalBefore < userLPBalAfter).to.equal(true)
     });
-
 });
 
