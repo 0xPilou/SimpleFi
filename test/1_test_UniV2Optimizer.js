@@ -14,7 +14,7 @@ describe("UniV2Optimizer Unit Tests", function () {
     const TokenBAbi = require("./external_abi/TokenB.json");
     const TokenCAbi = require("./external_abi/TokenC.json");
     const StakingRewardAbi = require("./external_abi/StakingReward.json");
-    const UniswapV2RouterAbi = require("./external_abi/Router.json");
+    const UniswapV2RouterAbi = require("./external_abi/ComethRouter.json");
 
     /* Adresses */
     // WMATIC-MUST LP

@@ -11,7 +11,7 @@ describe("AmmZap Unit Tests", function () {
     const TokenAAbi = require("./external_abi/TokenA.json");
     const TokenBAbi = require("./external_abi/TokenB.json");
     const TokenCAbi = require("./external_abi/TokenC.json");
-    const AmmRouterAbi = require("./external_abi/Router.json");
+    const AmmRouterAbi = require("./external_abi/ComethRouter.json");
 
     /* Adresses */
     // WMATIC-MUST LP
