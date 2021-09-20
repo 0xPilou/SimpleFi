@@ -4,6 +4,10 @@ import 'openzeppelin-solidity/contracts/utils/math/SafeMath.sol';
 import 'openzeppelin-solidity/contracts/utils/Context.sol';
 import 'openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol';
 
+interface IUniswapV2Pair {    
+    function token0() external view returns (address);
+    function token1() external view returns (address);
+}
 
 interface IUniswapV2Router {
     function addLiquidity(
@@ -64,11 +68,11 @@ contract AmmZap {
         IERC20(_tokenB).safeApprove(ammRouterAddr, MAX_INT);        
 
         if(_tokenToZap != _tokenA){
-            _swapToken(_tokenToZap, _tokenA, _amountToZap.div(2));
+            _swapToken(_tokenToZap, _tokenA, address(this),  _amountToZap.div(2));
         }
 
         if(_tokenToZap != _tokenB){
-            _swapToken(_tokenToZap, _tokenB, _amountToZap.div(2));
+            _swapToken(_tokenToZap, _tokenB, address(this), _amountToZap.div(2));
         }
 
         _addLiquidity(_tokenA, _tokenB);
@@ -80,40 +84,37 @@ contract AmmZap {
     function unzap(address _tokenToUnzap, address _expectedToken, uint256 _amountToUnzap) external {
         require(IERC20(_tokenToUnzap).balanceOf(address(msg.sender)) >= _amountToUnzap);
         
-        address memory tokenA = IERC20(_tokenToUnzap).token0;
-        address memory tokenB = IERC20(_tokenToUnzap).token1;
+        address tokenA = IUniswapV2Pair(_tokenToUnzap).token0();
+        address tokenB = IUniswapV2Pair(_tokenToUnzap).token1();
 
         IERC20(_tokenToUnzap).safeTransferFrom(msg.sender, address(this), _amountToUnzap);
 
         IERC20(_tokenToUnzap).safeApprove(ammRouterAddr, _amountToUnzap); 
      
-        (amountA, amountB) = IUniswapV2Router(ammRouterAddr).removeLiquidity(
-            _tokenA,
-            _tokenB,
+        (uint256 amountA, uint256 amountB) = IUniswapV2Router(ammRouterAddr).removeLiquidity(
+            tokenA,
+            tokenB,
             _amountToUnzap,
             1,
             1,
-            msg.sender,
+            address(this),
             block.timestamp.add(600)
         );
  
         if(tokenA != _expectedToken){
             IERC20(tokenA).safeApprove(ammRouterAddr, 0);        
-            IERC20(tokenA).safeApprove(ammRouterAddr, MAX_INT);
-            _swapToken(tokenA, _expectedToken, amountA);
+            IERC20(tokenA).safeApprove(ammRouterAddr, amountA);
+            _swapToken(tokenA, _expectedToken, msg.sender, amountA);
         }
 
         if(tokenB != _expectedToken){
             IERC20(tokenB).safeApprove(ammRouterAddr, 0);       
-            IERC20(tokenB).safeApprove(ammRouterAddr, MAX_INT);                   
-            _swapToken(tokenB, _expectedToken, amountB);
+            IERC20(tokenB).safeApprove(ammRouterAddr, amountB);                   
+            _swapToken(tokenB, _expectedToken, msg.sender, amountB);
         }
-        
-        IERC20(tokenA).safeApprove(ammRouterAddr, 0);        
-        IERC20(tokenB).safeApprove(ammRouterAddr, 0);
     }
 
-    function _swapToken(address _tokenIn, address _tokenOut, uint256 _amount) internal {
+    function _swapToken(address _tokenIn, address _tokenOut, address _to, uint256 _amount) internal {
         address[] memory path = new address[](2);
         path[0] = _tokenIn;
         path[1] = _tokenOut;
@@ -121,7 +122,7 @@ contract AmmZap {
             _amount,
             0,
             path,
-            address(this),
+            _to,
             block.timestamp.add(600)
         );
     }
