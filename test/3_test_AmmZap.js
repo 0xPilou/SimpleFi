@@ -3,6 +3,8 @@
  */
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const truffleAssert = require('truffle-assertions');
+
 
 describe("AmmZap Unit Tests", function () {  
     
@@ -179,6 +181,98 @@ describe("AmmZap Unit Tests", function () {
 
         // Assertion #2 : User LP Balance Before < User LP Balance After
         expect(userLPBalBefore < userLPBalAfter).to.equal(true)
+    });
+
+    it("should unzap half of the MUST-WMATIC LP tokens into WETH", async () => {
+
+        const userLPBal = await lp.balanceOf(nonOwner.address);
+        const userWETHBalBefore = await tokenC.balanceOf(nonOwner.address);
+        
+        // Approving the 10 WETH tokens to be zapped by the AMMZap
+        await lp.connect(nonOwner).approve(ammZap.address, userLPBal.div(2));
+
+        // Unzapping half of the MUST-WMATIC LP tokens into WETH Tokens
+        await ammZap.connect(nonOwner).unzap(
+            lp.address,
+            tokenC.address,
+            userLPBal.div(2),
+        );
+        
+        // Checking the balances after the unzapping operation
+        const userLPBalAfter = await lp.balanceOf(nonOwner.address);      
+        const userWETHBalAfter = await tokenC.balanceOf(nonOwner.address);      
+
+        // Assertion #1 : User WETH Balance After > User WETH Balance Before
+        expect(userWETHBalAfter > userWETHBalBefore).to.equal(true)
+
+        // Assertion #2 : User LP Balance Before < User LP Balance After
+        expect(userLPBal.sub(userLPBal.div(2))).to.equal(userLPBalAfter)
+    });
+
+    it("should unzap half of the MUST-WMATIC LP tokens into MUST", async () => {
+
+        const userLPBal = await lp.balanceOf(nonOwner.address);
+        const userMUSTBalBefore = await tokenB.balanceOf(nonOwner.address);
+        
+        // Approving the 10 WETH tokens to be zapped by the AMMZap
+        await lp.connect(nonOwner).approve(ammZap.address, userLPBal.div(2));
+
+        // Unzapping half of the MUST-WMATIC LP tokens into WETH Tokens
+        await ammZap.connect(nonOwner).unzap(
+            lp.address,
+            tokenB.address,
+            userLPBal.div(2),
+        );
+        
+        // Checking the balances after the unzapping operation
+        const userLPBalAfter = await lp.balanceOf(nonOwner.address);      
+        const userMUSTBalAfter = await tokenC.balanceOf(nonOwner.address);      
+
+        // Assertion #1 : User WETH Balance After > User WETH Balance Before
+        expect(userMUSTBalAfter > userMUSTBalBefore).to.equal(true)
+
+        // Assertion #2 : User LP Balance Before < User LP Balance After
+        expect(userLPBal.sub(userLPBal.div(2))).to.equal(userLPBalAfter)
+    });
+
+    it("should unzap all the remaining MUST-WMATIC LP tokens into WMATIC", async () => {
+        
+        const userLPBal = await lp.balanceOf(nonOwner.address);
+        const userWMATICBalBefore = await tokenA.balanceOf(nonOwner.address);
+        
+        // Approving the 10 WETH tokens to be zapped by the AMMZap
+        await lp.connect(nonOwner).approve(ammZap.address, userLPBal);
+
+        // Unzapping half of the MUST-WMATIC LP tokens into WETH Tokens
+        await ammZap.connect(nonOwner).unzap(
+            lp.address,
+            tokenA.address,
+            userLPBal,
+        );
+        
+        // Checking the balances after the unzapping operation
+        const userLPBalAfter = await lp.balanceOf(nonOwner.address);      
+        const userWMATICBalAfter = await tokenA.balanceOf(nonOwner.address);      
+
+        // Assertion #1 : User WETH Balance After > User WETH Balance Before
+        expect(userWMATICBalAfter > userWMATICBalBefore).to.equal(true)
+
+        // Assertion #2 : User LP Balance Before < User LP Balance After
+        expect(userLPBalAfter).to.equal(0)
+    });
+
+    it("should revert the transaction if the quantity to unzap is less than the LP balance", async () => {
+        // Quantity to unzap for this test
+        const amountToUnzap = 10;
+        const weiAmountToUnzap = ethers.utils.parseEther(amountToUnzap.toString());
+
+        await truffleAssert.reverts(
+            ammZap.connect(nonOwner).unzap(
+                lp.address,
+                tokenA.address,
+                weiAmountToUnzap
+            )
+        );
     });
 });
 
