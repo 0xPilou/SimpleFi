@@ -3,9 +3,11 @@
 pragma solidity ^0.8.0;
 
 import "./UniV2Optimizer.sol";
+import "./interfaces/IAmmZapFactory.sol";
 
 contract UniV2OptimizerFactory is Ownable {
     address[] public uniV2Optimizers;
+    address public ammZapFactory;
     Strategy[] public strategies;
 
     struct Strategy {
@@ -21,15 +23,21 @@ contract UniV2OptimizerFactory is Ownable {
     mapping(address => address[]) public uniV2OptimizerByOwner; 
     mapping(uint256 => address) public factoryOptimizers; 
 
+    constructor(address _ammZapFactory) {
+        ammZapFactory = _ammZapFactory;        
+    }
+
     function createUniV2Optimizer(uint256 _poolId) external returns(address newUniV2Optimizer) {
-        Strategy memory strategy = strategies[_poolId];
+        Strategy memory strategy = strategies[_poolId]; 
+        address ammZapAddr =  IAmmZapFactory(ammZapFactory).getAmmZapByRouter(strategy.uniV2RouterAddr);
         UniV2Optimizer uniV2Optimizer = new UniV2Optimizer(
             strategy.tokenA,
             strategy.tokenB,
             strategy.staking,
             strategy.reward,
             strategy.stakingRewardAddr,
-            strategy.uniV2RouterAddr
+            strategy.uniV2RouterAddr,
+            ammZapAddr
         );
         uniV2Optimizers.push(address(uniV2Optimizer));
         uniV2OptimizerByOwner[msg.sender].push(address(uniV2Optimizer));
@@ -65,13 +73,13 @@ contract UniV2OptimizerFactory is Ownable {
         newStrategy.stakingRewardAddr = _stakingRewardAddr;
         newStrategy.uniV2RouterAddr = _uniV2RouterAddr;
 
-        // add the new strategy to the contract storage of strategies 
+        // Add the new strategy to the contract storage of strategies 
         strategies.push(newStrategy);
 
-        // create the first optimizer of this strategy, belonging to the Factory itself.
+        // Create the first optimizer of this strategy, belonging to the Factory itself.
         factoryOptimizer = this.createUniV2Optimizer(newStrategy.poolId);
 
-        // register the optimizer address of the factory's optimizer
+        // Register the optimizer address of the factory's optimizer
         factoryOptimizers[newStrategy.poolId] = factoryOptimizer;
         return newStrategy.poolId;
     }

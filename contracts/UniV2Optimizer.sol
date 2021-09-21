@@ -30,6 +30,7 @@ contract UniV2Optimizer is Ownable {
      */
     address public stakingRewardAddr;
     address public uniV2RouterAddr;
+    address public ammZapAddr;
     
     /**
      * @dev Token swap route addresses 
@@ -48,7 +49,8 @@ contract UniV2Optimizer is Ownable {
         address _staking,
         address _reward,
         address _stakingRewardAddr,
-        address _uniV2RouterAddr
+        address _uniV2RouterAddr,
+        address _ammZapAddr
     ) {
         tokenA = _tokenA;
         tokenB = _tokenB;
@@ -56,6 +58,7 @@ contract UniV2Optimizer is Ownable {
         reward = _reward;
         stakingRewardAddr = _stakingRewardAddr;
         uniV2RouterAddr = _uniV2RouterAddr;
+        ammZapAddr = _ammZapAddr;
         rewardToTokenA = [_reward, _tokenA];
         rewardToTokenB = [_reward, _tokenB];
         
@@ -76,7 +79,6 @@ contract UniV2Optimizer is Ownable {
         _stakeAll();
     }
     
-
     function withdraw(uint256 _amount) external onlyOwner {
         IStakingRewards(stakingRewardAddr).withdraw(_amount);
         staked = staked.sub(_amount);
@@ -102,19 +104,19 @@ contract UniV2Optimizer is Ownable {
 
     function harvest() external onlyOwner {
         _claimReward();
-        _splitRewardToStaking();
-        _mintStaking();
+        uint256 amountToZap = IERC20(reward).balanceOf(address(this));
+        IERC20(reward).safeApprove(ammZapAddr, amountToZap);        
+        IAmmZap(ammZapAddr).zap(reward, tokenA, tokenB, amountToZap);
         _stakeAll();
     }
    
     function exitAvalanche() external onlyOwner {
-        //_exit();
         IStakingRewards(stakingRewardAddr).exit();
         staked = 0;
-
-        _splitRewardToStaking();
-        _mintStaking();
-
+        uint256 amountToZap = IERC20(reward).balanceOf(address(this));
+        IERC20(reward).safeApprove(ammZapAddr, amountToZap);        
+        IAmmZap(ammZapAddr).zap(reward, tokenA, tokenB, amountToZap);
+        
         if(IERC20(staking).balanceOf(address(this)) > 0){
             IERC20(staking).safeTransfer(msg.sender, IERC20(staking).balanceOf(address(this)));
         }
@@ -145,58 +147,9 @@ contract UniV2Optimizer is Ownable {
         IStakingRewards(stakingRewardAddr).stake(IERC20(staking).balanceOf(address(this)));
     }
 
-    //function _withdraw(uint256 _amount) internal {
-    //    IStakingRewards(stakingRewardAddr).withdraw(_amount);
-    //    staked = staked.sub(_amount);
-    //}
-
-    //function _exit() internal {
-    //    IStakingRewards(stakingRewardAddr).exit();
-    //    staked = 0;
-    //}
-
     function _claimReward() internal {
         if(staked > 0) {
             IStakingRewards(stakingRewardAddr).getReward();
         }
     } 
-    
-    function _splitRewardToStaking() internal {
-        if(IERC20(reward).balanceOf(address(this)) > 0){
-            uint256 rewardSplit = IERC20(reward).balanceOf(address(this)).div(2);
-            if(reward != tokenA){
-                IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
-                    rewardSplit,
-                    0,
-                    rewardToTokenA,
-                    address(this),
-                    block.timestamp.add(600)
-                );
-            }
-            if(reward != tokenB){
-                IUniswapV2Router(uniV2RouterAddr).swapExactTokensForTokens(
-                    IERC20(reward).balanceOf(address(this)),
-                    0,
-                    rewardToTokenB,
-                    address(this),
-                    block.timestamp.add(600)
-                );
-            }              
-        }
-    }
-
-    function _mintStaking() internal {
-        uint256 balanceA = IERC20(tokenA).balanceOf(address(this));
-        uint256 balanceB = IERC20(tokenB).balanceOf(address(this));
-        IUniswapV2Router(uniV2RouterAddr).addLiquidity(
-            address(IERC20(tokenA)),
-            address(IERC20(tokenB)),
-            balanceA,
-            balanceB,
-            1,
-            1,
-            address(this),
-            block.timestamp.add(600)
-        );
-    }
 }    

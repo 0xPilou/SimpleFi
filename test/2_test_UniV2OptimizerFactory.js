@@ -55,12 +55,20 @@ describe("UniV2OptimizerFactory Unit Tests", function () {
     let UniV2OptimizerFactory;
     let uniV2OptimizerFactory;
 
+    let AmmZapFactory;
+    let ammZapFactory;
+
     before(async () => {
         [owner, addr1, _] = await ethers.getSigners(); 
         
+        AmmZapFactory = await ethers.getContractFactory("AmmZapFactory");
+        ammZapFactory = await AmmZapFactory.connect(owner).deploy();
+
         // Deploying the contract under test
         UniV2OptimizerFactory = await ethers.getContractFactory("UniV2OptimizerFactory");
-        uniV2OptimizerFactory = await UniV2OptimizerFactory.connect(owner).deploy();
+        uniV2OptimizerFactory = await UniV2OptimizerFactory.connect(owner).deploy(
+            ammZapFactory.address
+        );
     });
 
     it("should add a new strategy to the UniV2Optimizer Factory ", async () => {

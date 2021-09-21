@@ -54,6 +54,9 @@ describe("UniV2Optimizer Unit Tests", function () {
     let UniV2Optimizer;
     let uniV2Optimizer;
 
+    let AmmZap;
+    let ammZap;
+
     before(async function () {
 
         // WETH Whale           : 0xd3d176F7e4b43C70a68466949F6C64F06Ce75BB9
@@ -75,6 +78,9 @@ describe("UniV2Optimizer Unit Tests", function () {
 
         [owner, nonOwner, _] = await ethers.getSigners();   
 
+        AmmZap = await ethers.getContractFactory("AmmZap");
+        ammZap = await AmmZap.connect(owner).deploy(uniV2Router.address);
+
         // Deploying the contract under test
         UniV2Optimizer = await ethers.getContractFactory("UniV2Optimizer");
         uniV2Optimizer = await UniV2Optimizer.connect(owner).deploy(
@@ -83,7 +89,8 @@ describe("UniV2Optimizer Unit Tests", function () {
             staking.address,
             reward.address,
             stakingReward.address,
-            uniV2Router.address
+            uniV2Router.address,
+            ammZap.address,
         );
     });
 
@@ -186,7 +193,7 @@ describe("UniV2Optimizer Unit Tests", function () {
         expect(userLPBalAfter > userLPBalBefore).to.equal(true);
        
         // Assertion #2 : User Reward Balance After > User Reward Balance Before
-        expect(userRewardBalAfter > userRewardBalBefore).to.equal(true);
+        expect(userRewardBalAfter >= userRewardBalBefore).to.equal(true);
         
         // Assertion #3 : Staking Pool Balance Before > Staking Pool Balance After
         expect(poolBalBefore > poolBalAfter).to.equal(true);
