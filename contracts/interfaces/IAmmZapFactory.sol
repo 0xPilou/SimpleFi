@@ -4,7 +4,7 @@ interface IAmmZapFactory {
 
     function createAmmZap(
         address _ammRouterAddr
-    ) external onlyOwner returns(address newAmmZap);
+    ) external returns(address newAmmZap);
 
     function getAmmZapByRouter(
         address _ammRouterAddr
