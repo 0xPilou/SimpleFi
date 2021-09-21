@@ -84,10 +84,6 @@ describe("UniV2Optimizer Unit Tests", function () {
         // Deploying the contract under test
         UniV2Optimizer = await ethers.getContractFactory("UniV2Optimizer");
         uniV2Optimizer = await UniV2Optimizer.connect(owner).deploy(
-            tokenA.address,
-            tokenB.address,
-            staking.address,
-            reward.address,
             stakingReward.address,
             uniV2Router.address,
             ammZap.address,

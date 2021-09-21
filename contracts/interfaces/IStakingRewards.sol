@@ -6,4 +6,6 @@ interface IStakingRewards {
     function withdraw(uint256 amount) external;
     function getReward() external;
     function exit() external;
+    function stakingToken() external view returns (address);
+    function rewardsToken() external view returns (address);
 }

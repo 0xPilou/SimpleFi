@@ -7,6 +7,7 @@ import 'openzeppelin-solidity/contracts/access/Ownable.sol';
 import 'openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol';
 import './interfaces/IStakingRewards.sol';
 import './interfaces/IUniswapV2Router.sol';
+import './interfaces/IUniswapV2Pair.sol';
 import './interfaces/IAmmZap.sol';
 
 
@@ -32,44 +33,32 @@ contract UniV2Optimizer is Ownable {
     address public uniV2RouterAddr;
     address public ammZapAddr;
     
-    /**
-     * @dev Token swap route addresses 
-     */    
-    address[] public rewardToTokenA;
-    address[] public rewardToTokenB;
-
     uint256 public staked = 0;
 
     /**
      * @dev Initializes the strategy for the given protocol
      */
     constructor(
-        address _tokenA,
-        address _tokenB,
-        address _staking,
-        address _reward,
         address _stakingRewardAddr,
         address _uniV2RouterAddr,
         address _ammZapAddr
     ) {
-        tokenA = _tokenA;
-        tokenB = _tokenB;
-        staking = _staking;
-        reward = _reward;
         stakingRewardAddr = _stakingRewardAddr;
         uniV2RouterAddr = _uniV2RouterAddr;
         ammZapAddr = _ammZapAddr;
-        rewardToTokenA = [_reward, _tokenA];
-        rewardToTokenB = [_reward, _tokenB];
-        
-        IERC20(_staking).safeApprove(_stakingRewardAddr, 0);
-        IERC20(_staking).safeApprove(_stakingRewardAddr, MAX_INT);
-        IERC20(_reward).safeApprove(_uniV2RouterAddr, 0);
-        IERC20(_reward).safeApprove(_uniV2RouterAddr, MAX_INT);        
-        IERC20(_tokenA).safeApprove(_uniV2RouterAddr, 0);
-        IERC20(_tokenA).safeApprove(_uniV2RouterAddr, MAX_INT);
-        IERC20(_tokenB).safeApprove(_uniV2RouterAddr, 0);
-        IERC20(_tokenB).safeApprove(_uniV2RouterAddr, MAX_INT);
+        staking = IStakingRewards(stakingRewardAddr).stakingToken();
+        reward = IStakingRewards(stakingRewardAddr).rewardsToken();
+        tokenA = IUniswapV2Pair(staking).token0();
+        tokenB = IUniswapV2Pair(staking).token1();
+       
+        IERC20(staking).safeApprove(_stakingRewardAddr, 0);
+        IERC20(staking).safeApprove(_stakingRewardAddr, MAX_INT);
+        IERC20(reward).safeApprove(_uniV2RouterAddr, 0);
+        IERC20(reward).safeApprove(_uniV2RouterAddr, MAX_INT);        
+        IERC20(tokenA).safeApprove(_uniV2RouterAddr, 0);
+        IERC20(tokenA).safeApprove(_uniV2RouterAddr, MAX_INT);
+        IERC20(tokenB).safeApprove(_uniV2RouterAddr, 0);
+        IERC20(tokenB).safeApprove(_uniV2RouterAddr, MAX_INT);
         
     }
 
@@ -116,7 +105,7 @@ contract UniV2Optimizer is Ownable {
         uint256 amountToZap = IERC20(reward).balanceOf(address(this));
         IERC20(reward).safeApprove(ammZapAddr, amountToZap);        
         IAmmZap(ammZapAddr).zap(reward, tokenA, tokenB, amountToZap);
-        
+
         if(IERC20(staking).balanceOf(address(this)) > 0){
             IERC20(staking).safeTransfer(msg.sender, IERC20(staking).balanceOf(address(this)));
         }

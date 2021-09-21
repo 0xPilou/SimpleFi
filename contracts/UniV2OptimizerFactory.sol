@@ -31,10 +31,6 @@ contract UniV2OptimizerFactory is Ownable {
         Strategy memory strategy = strategies[_poolId]; 
         address ammZapAddr =  IAmmZapFactory(ammZapFactory).getAmmZapByRouter(strategy.uniV2RouterAddr);
         UniV2Optimizer uniV2Optimizer = new UniV2Optimizer(
-            strategy.tokenA,
-            strategy.tokenB,
-            strategy.staking,
-            strategy.reward,
             strategy.stakingRewardAddr,
             strategy.uniV2RouterAddr,
             ammZapAddr
