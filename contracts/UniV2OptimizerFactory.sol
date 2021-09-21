@@ -19,6 +19,7 @@ contract UniV2OptimizerFactory is Ownable {
     }
     
     mapping(address => address[]) public uniV2OptimizerByOwner; 
+    mapping(uint256 => address) public factoryOptimizers; 
 
     function createUniV2Optimizer(uint256 _poolId) external returns(address newUniV2Optimizer) {
         Strategy memory strategy = strategies[_poolId];
@@ -53,6 +54,9 @@ contract UniV2OptimizerFactory is Ownable {
         address _uniV2RouterAddr
     ) external onlyOwner returns(uint256){
         Strategy memory newStrategy;
+        address factoryOptimizer;
+
+        // Populate the strategy struct with requested details
         newStrategy.poolId = strategies.length;
         newStrategy.tokenA = _tokenA;
         newStrategy.tokenB = _tokenB;
@@ -60,7 +64,15 @@ contract UniV2OptimizerFactory is Ownable {
         newStrategy.reward = _reward;
         newStrategy.stakingRewardAddr = _stakingRewardAddr;
         newStrategy.uniV2RouterAddr = _uniV2RouterAddr;
+
+        // add the new strategy to the contract storage of strategies 
         strategies.push(newStrategy);
+
+        // create the first optimizer of this strategy, belonging to the Factory itself.
+        factoryOptimizer = this.createUniV2Optimizer(newStrategy.poolId);
+
+        // register the optimizer address of the factory's optimizer
+        factoryOptimizers[newStrategy.poolId] = factoryOptimizer;
         return newStrategy.poolId;
     }
 
@@ -74,6 +86,10 @@ contract UniV2OptimizerFactory is Ownable {
 
     function getOwnerOptimizers(address _owner) external view returns(address[] memory) {
         return uniV2OptimizerByOwner[_owner];
+    }
+
+    function getFactoryOptimizerByStrategyID(uint256 _poolId) external view returns(address){
+        return factoryOptimizers[_poolId];
     }
 }
 
