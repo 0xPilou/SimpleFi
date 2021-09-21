@@ -5,35 +5,9 @@ import 'openzeppelin-solidity/contracts/utils/math/SafeMath.sol';
 import 'openzeppelin-solidity/contracts/utils/Context.sol';
 import 'openzeppelin-solidity/contracts/access/Ownable.sol';
 import 'openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol';
-
-interface IStakingRewards {
-    function earned(address account) external view returns (uint256);
-    function stake(uint256 amount) external;
-    function withdraw(uint256 amount) external;
-    function getReward() external;
-    function exit() external;
-}
-
-interface IUniswapV2Router {
-    function addLiquidity(
-        address tokenA,
-        address tokenB,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMin,
-        uint amountBMin,
-        address to,
-        uint deadline
-    ) external returns (uint amountA, uint amountB, uint liquidity);
-    
-    function swapExactTokensForTokens(
-        uint amountIn, 
-        uint amountOutMin, 
-        address[] calldata path, 
-        address to, 
-        uint deadline
-    ) external returns (uint[] memory amounts);
-}
+import './interfaces/IStakingRewards.sol';
+import './interfaces/IUniswapV2Router.sol';
+import './interfaces/IAmmZap.sol';
 
 
 contract UniV2Optimizer is Ownable {
@@ -104,7 +78,6 @@ contract UniV2Optimizer is Ownable {
     
 
     function withdraw(uint256 _amount) external onlyOwner {
-        //_withdraw(_amount);
         IStakingRewards(stakingRewardAddr).withdraw(_amount);
         staked = staked.sub(_amount);
         IERC20(staking).safeTransfer(msg.sender, _amount);

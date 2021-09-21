@@ -3,42 +3,8 @@ pragma solidity ^0.8.0;
 import 'openzeppelin-solidity/contracts/utils/math/SafeMath.sol';
 import 'openzeppelin-solidity/contracts/utils/Context.sol';
 import 'openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol';
-
-interface IUniswapV2Pair {    
-    function token0() external view returns (address);
-    function token1() external view returns (address);
-}
-
-interface IUniswapV2Router {
-    function addLiquidity(
-        address tokenA,
-        address tokenB,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMin,
-        uint amountBMin,
-        address to,
-        uint deadline
-    ) external returns (uint amountA, uint amountB, uint liquidity);
-
-    function removeLiquidity(
-        address tokenA,
-        address tokenB,
-        uint liquidity,
-        uint amountAMin,
-        uint amountBMin,
-        address to,
-        uint deadline
-    ) external returns (uint amountA, uint amountB);
-    
-    function swapExactTokensForTokens(
-        uint amountIn, 
-        uint amountOutMin, 
-        address[] calldata path, 
-        address to, 
-        uint deadline
-    ) external returns (uint[] memory amounts);
-}
+import './interfaces/IUniswapV2Pair.sol';
+import './interfaces/IUniswapV2Router.sol';
 
 
 contract AmmZap {
