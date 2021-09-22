@@ -1,5 +1,4 @@
 // "SPDX-License-Identifier: UNLICENSED"
-
 pragma solidity ^0.8.0;
 
 import "./UniV2Optimizer.sol";
@@ -40,14 +39,13 @@ contract UniV2OptimizerFactory is Ownable {
         uniV2Optimizer.transferOwnership(msg.sender);
         return address(uniV2Optimizer);
     }
-// COMMENTED TO SAVE ON CONTRACT SIZE --> To consider if really needed (alternative offchain solution)
-    //function harvestAll() external {
-    //    require(uniV2OptimizerByOwner[msg.sender].length > 0);
-    //    address[] memory ownerUniV2Optimizers = uniV2OptimizerByOwner[msg.sender];
-    //    for (uint i = 0; i < ownerUniV2Optimizers.length; i++) {
-    //        UniV2Optimizer(ownerUniV2Optimizers[i]).harvest();
-    //    }
-    //}
+
+    function compoundFactoryOptimizers() external onlyOwner {
+        require(strategies.length > 0);
+        for (uint i = 0; i < strategies.length; i++) {
+            UniV2Optimizer(this.getFactoryOptimizerByStrategyID(i)).harvest();
+        }
+    }
 
     function addStrategy(
         address _tokenA,
