@@ -72,6 +72,7 @@ contract UniV2Optimizer is Ownable {
     }
     
     function withdraw(uint256 _amount) external onlyOwner {
+        _claimReward();
         IStakingRewards(stakingRewardAddr).withdraw(_amount);
         staked = staked.sub(_amount);
         IERC20(staking).safeTransfer(msg.sender, _amount);
