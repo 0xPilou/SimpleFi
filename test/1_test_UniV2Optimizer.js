@@ -16,6 +16,8 @@ describe("UniV2Optimizer Unit Tests", function () {
     const StakingRewardAbi = require("./external_abi/StakingReward.json");
     const UniswapV2RouterAbi = require("./external_abi/ComethRouter.json");
 
+    const UniV2OptimizerAbi = require("./external_abi/UniV2Optimizer.json");
+
     /* Adresses */
     // WMATIC-MUST LP
     const StakingAddress = "0x80676b414a905De269D0ac593322Af821b683B92";
@@ -54,6 +56,9 @@ describe("UniV2Optimizer Unit Tests", function () {
     let UniV2Optimizer;
     let uniV2Optimizer;
 
+    let UniV2OptimizerFactory;
+    let uniV2OptimizerFactory;
+
     let AmmZap;
     let ammZap;
 
@@ -63,7 +68,7 @@ describe("UniV2Optimizer Unit Tests", function () {
         // LP Whale             : 0xdA8479E5b8A273A403148a779Fbb8903DC2C739d
         // WMATIC Whale         : 0x84D34f4f83a87596Cd3FB6887cFf8F17Bf5A7B83
 
-        // Impersonating a whale address to provision the owner account with necessary tokens
+        // Impersonating whale addresses to provision the owner account with necessary tokens
         await hre.network.provider.request({
             method: "hardhat_impersonateAccount",
             params: ["0xdA8479E5b8A273A403148a779Fbb8903DC2C739d"],
@@ -76,19 +81,41 @@ describe("UniV2Optimizer Unit Tests", function () {
           });
         whaleWETH = await ethers.getSigner("0xd3d176F7e4b43C70a68466949F6C64F06Ce75BB9");   
 
-        [owner, nonOwner, mockFeeCollector, _] = await ethers.getSigners();   
+        // Define the signers required for the tests
+        [owner, nonOwner, _] = await ethers.getSigners();   
 
-        AmmZap = await ethers.getContractFactory("AmmZap");
-        ammZap = await AmmZap.connect(owner).deploy(uniV2Router.address);
+        // Deploy AmmZapFactory
+        AmmZapFactory = await ethers.getContractFactory("AmmZapFactory");
+        ammZapFactory = await AmmZapFactory.connect(owner).deploy();
+        await ammZapFactory.connect(owner).createAmmZap(uniV2Router.address);
 
-        // Deploying the contract under test
-        UniV2Optimizer = await ethers.getContractFactory("UniV2Optimizer");
-        uniV2Optimizer = await UniV2Optimizer.connect(owner).deploy(
-            stakingReward.address,
-            uniV2Router.address,
-            ammZap.address,
-            mockFeeCollector.address
+        // Deploy UniV2OptimizerFactory
+        UniV2OptimizerFactory = await ethers.getContractFactory("UniV2OptimizerFactory");
+        uniV2OptimizerFactory = await UniV2OptimizerFactory.connect(owner).deploy(
+            ammZapFactory.address
         );
+
+        // Add the strategy to be used for this test
+        await uniV2OptimizerFactory.addStrategy(
+            stakingReward.address,
+            uniV2Router.address
+        );
+
+        // Create the UniV2Optimizer under test
+        await uniV2OptimizerFactory.connect(owner).createUniV2Optimizer(0);
+
+        // Get the address of the UniV2Optimizer under test
+        const uniV2OptimizerAddr = await uniV2OptimizerFactory.uniV2Optimizers(1);
+        const factoryOptimizerAddr = await uniV2OptimizerFactory.getFactoryOptimizerByStrategyID(0);
+
+        uniV2Optimizer = new ethers.Contract(uniV2OptimizerAddr, UniV2OptimizerAbi, provider); 
+        factoryOptimizer = new ethers.Contract(factoryOptimizerAddr, UniV2OptimizerAbi, provider); 
+    });
+
+    // Mine an empty block in between each test case
+    // This step ensures that the StakingReward contract accrues Reward 
+    beforeEach(async function () {
+        await network.provider.send("evm_mine");
     });
 
     it("should stake 10 LP tokens to the Staking Reward Pool", async () => {
@@ -128,7 +155,7 @@ describe("UniV2Optimizer Unit Tests", function () {
         const weiAmountToWithdraw = ethers.utils.parseEther(amountToWithdraw.toString());
         
         // Assertion : Transaction should revert as the owner staked balance is lower than the quantity withdrawn
-        await truffleAssert.reverts(uniV2Optimizer.withdraw(weiAmountToWithdraw));
+        await truffleAssert.reverts(uniV2Optimizer.connect(owner).withdraw(weiAmountToWithdraw));
     });
   
     
@@ -136,14 +163,14 @@ describe("UniV2Optimizer Unit Tests", function () {
        
         // Checking the balances before the compounding operation
         const poolBalBefore = ethers.utils.formatEther(await staking.balanceOf(stakingReward.address));
-        const feeBalBefore = ethers.utils.formatEther(await reward.balanceOf(mockFeeCollector.address));
+        const feeBalBefore = await factoryOptimizer.staked();
 
         // Compounding operation
-        await uniV2Optimizer.harvest();
+        await uniV2Optimizer.connect(owner).harvest();
 
         // Checking the balances after the compounding operation
         const poolBalAfter = ethers.utils.formatEther(await staking.balanceOf(stakingReward.address));
-        const feeBalAfter = ethers.utils.formatEther(await reward.balanceOf(mockFeeCollector.address));
+        const feeBalAfter = await factoryOptimizer.staked();
 
 
         // Assertion : Staking Pool Balance After > Staking Pool Balance Before
@@ -160,26 +187,24 @@ describe("UniV2Optimizer Unit Tests", function () {
         // Checking the balances before the withdrawal operation
         const userBalBefore = await staking.balanceOf(owner.address);
         const poolBalBefore = await staking.balanceOf(stakingReward.address);
-        const feeBalBefore = ethers.utils.formatEther(await reward.balanceOf(mockFeeCollector.address));
-
+        const feeBalBefore = await factoryOptimizer.staked();
 
         // Withdraw operation
-        await uniV2Optimizer.withdraw(weiAmountToWithdraw);
+        await uniV2Optimizer.connect(owner).withdraw(weiAmountToWithdraw);
 
         // Checking the balances after the withdrawal operation
         const userBalAfter = await staking.balanceOf(owner.address);
         const poolBalAfter = await staking.balanceOf(stakingReward.address);
-        const feeBalAfter = ethers.utils.formatEther(await reward.balanceOf(mockFeeCollector.address));
+        const feeBalAfter = await factoryOptimizer.staked();
 
-       
         // Assertion #1 : User Balance After - User Balance Before = Withdraw Amount
-        expect(userBalAfter.sub(userBalBefore)).to.equal(weiAmountToWithdraw);
+        expect(userBalAfter.sub(userBalBefore)).to.equal(weiAmountToWithdraw, "User balance incorrect");
 
-        // Assertion #2 : Staking Pool Balance Before - Withdraw Amount = Staking Pool Balance After
-        expect(poolBalBefore.sub(weiAmountToWithdraw)).to.equal(poolBalAfter);
+        // Assertion #2 : Staking Pool Balance Before > Staking Pool Balance After
+        expect(poolBalBefore > poolBalAfter).to.equal(true, "Pool balance incorrect");
 
         // Assertion #3 : Fee Collector Balance Before < Fee Collector Balance After
-        expect(feeBalBefore < feeBalAfter).to.equal(true, "Fees not accrued");
+        expect(feeBalBefore.toNumber() < feeBalAfter.toNumber()).to.equal(true, "Fees not accrued");
 
     });
 
@@ -189,18 +214,18 @@ describe("UniV2Optimizer Unit Tests", function () {
         const userLPBalBefore = await staking.balanceOf(owner.address);
         const userRewardBalBefore = await reward.balanceOf(owner.address);
         const poolBalBefore = await staking.balanceOf(stakingReward.address);
-        const feeBalBefore = ethers.utils.formatEther(await reward.balanceOf(mockFeeCollector.address));
+        const feeBalBefore = await factoryOptimizer.staked();
+
 
 
         // Exit Avalanche operation
-        await uniV2Optimizer.exitAvalanche();
+        await uniV2Optimizer.connect(owner).exitAvalanche();
 
         // Checking the balances after the withdrawal operation
         const userLPBalAfter = await staking.balanceOf(owner.address);
         const userRewardBalAfter = await reward.balanceOf(owner.address);
         const poolBalAfter = await staking.balanceOf(stakingReward.address);
-        const feeBalAfter = ethers.utils.formatEther(await reward.balanceOf(mockFeeCollector.address));
-
+        const feeBalAfter = await factoryOptimizer.staked();
 
         // Assertion #1 : User LP Balance After > User LP Balance Before
         expect(userLPBalAfter > userLPBalBefore).to.equal(true);
@@ -226,17 +251,17 @@ describe("UniV2Optimizer Unit Tests", function () {
         const userTokenCBalBefore = await tokenC.balanceOf(owner.address);
 
         // ERC20 Recovery Operation
-        await uniV2Optimizer.recoverERC20(tokenC.address);
+        await uniV2Optimizer.connect(owner).recoverERC20(tokenC.address);
 
         // Checking the balances after the recovery operation
         const optiTokenCBalAfter = await tokenC.balanceOf(uniV2Optimizer.address);
         const userTokenCBalAfter = await tokenC.balanceOf(owner.address);
 
         // Assertion #1 : Optimizer Token C Balance Before > Optimizer Token C Balance After
-        expect(optiTokenCBalBefore > optiTokenCBalAfter).to.equal(true);
+        expect(optiTokenCBalBefore > optiTokenCBalAfter).to.equal(true, "Optimizer Balance of WETH is incorrect");
         
         // Assertion #2 : User Token C Balance Before < User Token C Balance After
-        expect(userTokenCBalBefore < userTokenCBalAfter).to.equal(true);
+        expect(userTokenCBalBefore < userTokenCBalAfter).to.equal(true, "User Balance of WETH is incorrect");
         
     });
 

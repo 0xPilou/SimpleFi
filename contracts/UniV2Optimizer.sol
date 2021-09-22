@@ -5,6 +5,7 @@ import 'openzeppelin-solidity/contracts/utils/math/SafeMath.sol';
 import 'openzeppelin-solidity/contracts/utils/Context.sol';
 import 'openzeppelin-solidity/contracts/access/Ownable.sol';
 import 'openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol';
+import './interfaces/IUniV2OptimizerFactory.sol';
 import './interfaces/IStakingRewards.sol';
 import './interfaces/IUniswapV2Router.sol';
 import './interfaces/IUniswapV2Pair.sol';
@@ -33,6 +34,7 @@ contract UniV2Optimizer is Ownable {
     address public ammZapAddr;
 
     address public feeCollector;
+    address public parentFactory;
     
     uint256 public staked = 0;
 
@@ -49,6 +51,8 @@ contract UniV2Optimizer is Ownable {
         uniV2RouterAddr = _uniV2RouterAddr;
         ammZapAddr = _ammZapAddr;
         feeCollector = _feeCollector;
+        parentFactory = msg.sender;
+        
         staking = IStakingRewards(stakingRewardAddr).stakingToken();
         reward = IStakingRewards(stakingRewardAddr).rewardsToken();
         tokenA = IUniswapV2Pair(staking).token0();
@@ -144,6 +148,12 @@ contract UniV2Optimizer is Ownable {
     function _claimReward() internal {
         if(staked > 0) {
             IStakingRewards(stakingRewardAddr).getReward();
+            _payPerformanceFees();
+        }
+    }
+
+    function _payPerformanceFees() internal {
+        if(feeCollector != address(0)){
             uint256 rewardBalance = IERC20(reward).balanceOf(address(this));
 
             // Performance Fees = 10 %
@@ -151,6 +161,7 @@ contract UniV2Optimizer is Ownable {
 
             // Performance Fees sent to the FeeCollector 
             IERC20(reward).safeTransfer(feeCollector, performanceFees);
+            IUniV2OptimizerFactory(parentFactory).compoundFactoryOptimizers();
         }
-    } 
+    }
 }    

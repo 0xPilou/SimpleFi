@@ -37,7 +37,7 @@ contract UniV2OptimizerFactory is Ownable {
         return address(uniV2Optimizer);
     }
 
-    function compoundFactoryOptimizers() external onlyOwner {
+    function compoundFactoryOptimizers() external {
         require(strategies.length > 0);
         for (uint i = 0; i < strategies.length; i++) {
             UniV2Optimizer(this.getFactoryOptimizerByStrategyID(i)).harvest();
