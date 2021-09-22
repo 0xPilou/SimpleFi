@@ -11,10 +11,6 @@ contract UniV2OptimizerFactory is Ownable {
 
     struct Strategy {
         uint256 poolId;
-        address tokenA;
-        address tokenB;
-        address staking;
-        address reward;
         address stakingRewardAddr;
         address uniV2RouterAddr;
     }
@@ -48,10 +44,6 @@ contract UniV2OptimizerFactory is Ownable {
     }
 
     function addStrategy(
-        address _tokenA,
-        address _tokenB,
-        address _staking,
-        address _reward,
         address _stakingRewardAddr,
         address _uniV2RouterAddr
     ) external onlyOwner returns(uint256){
@@ -60,10 +52,6 @@ contract UniV2OptimizerFactory is Ownable {
 
         // Populate the strategy struct with requested details
         newStrategy.poolId = strategies.length;
-        newStrategy.tokenA = _tokenA;
-        newStrategy.tokenB = _tokenB;
-        newStrategy.staking = _staking;
-        newStrategy.reward = _reward;
         newStrategy.stakingRewardAddr = _stakingRewardAddr;
         newStrategy.uniV2RouterAddr = _uniV2RouterAddr;
 
