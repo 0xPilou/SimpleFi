@@ -76,7 +76,7 @@ describe("UniV2Optimizer Unit Tests", function () {
           });
         whaleWETH = await ethers.getSigner("0xd3d176F7e4b43C70a68466949F6C64F06Ce75BB9");   
 
-        [owner, nonOwner, _] = await ethers.getSigners();   
+        [owner, nonOwner, mockFeeCollector, _] = await ethers.getSigners();   
 
         AmmZap = await ethers.getContractFactory("AmmZap");
         ammZap = await AmmZap.connect(owner).deploy(uniV2Router.address);
@@ -87,6 +87,7 @@ describe("UniV2Optimizer Unit Tests", function () {
             stakingReward.address,
             uniV2Router.address,
             ammZap.address,
+            mockFeeCollector.address
         );
     });
 
@@ -135,15 +136,19 @@ describe("UniV2Optimizer Unit Tests", function () {
        
         // Checking the balances before the compounding operation
         const poolBalBefore = ethers.utils.formatEther(await staking.balanceOf(stakingReward.address));
+        const feeBalBefore = ethers.utils.formatEther(await reward.balanceOf(mockFeeCollector.address));
 
         // Compounding operation
         await uniV2Optimizer.harvest();
 
         // Checking the balances after the compounding operation
         const poolBalAfter = ethers.utils.formatEther(await staking.balanceOf(stakingReward.address));
+        const feeBalAfter = ethers.utils.formatEther(await reward.balanceOf(mockFeeCollector.address));
+
 
         // Assertion : Staking Pool Balance After > Staking Pool Balance Before
         expect(poolBalBefore < poolBalAfter).to.equal(true);
+        expect(feeBalBefore < feeBalAfter).to.equal(true, "Fees not accrued");
     });
 
     it("should withdraw 10 LP tokens from the Staking Reward Pool", async () => {
@@ -155,6 +160,8 @@ describe("UniV2Optimizer Unit Tests", function () {
         // Checking the balances before the withdrawal operation
         const userBalBefore = await staking.balanceOf(owner.address);
         const poolBalBefore = await staking.balanceOf(stakingReward.address);
+        const feeBalBefore = ethers.utils.formatEther(await reward.balanceOf(mockFeeCollector.address));
+
 
         // Withdraw operation
         await uniV2Optimizer.withdraw(weiAmountToWithdraw);
@@ -162,12 +169,18 @@ describe("UniV2Optimizer Unit Tests", function () {
         // Checking the balances after the withdrawal operation
         const userBalAfter = await staking.balanceOf(owner.address);
         const poolBalAfter = await staking.balanceOf(stakingReward.address);
+        const feeBalAfter = ethers.utils.formatEther(await reward.balanceOf(mockFeeCollector.address));
+
        
         // Assertion #1 : User Balance After - User Balance Before = Withdraw Amount
         expect(userBalAfter.sub(userBalBefore)).to.equal(weiAmountToWithdraw);
 
         // Assertion #2 : Staking Pool Balance Before - Withdraw Amount = Staking Pool Balance After
         expect(poolBalBefore.sub(weiAmountToWithdraw)).to.equal(poolBalAfter);
+
+        // Assertion #3 : Fee Collector Balance Before < Fee Collector Balance After
+        expect(feeBalBefore < feeBalAfter).to.equal(true, "Fees not accrued");
+
     });
 
     it("should withdraw all Staking and Reward tokens form the Staking Reward Pool", async () => {
@@ -176,6 +189,8 @@ describe("UniV2Optimizer Unit Tests", function () {
         const userLPBalBefore = await staking.balanceOf(owner.address);
         const userRewardBalBefore = await reward.balanceOf(owner.address);
         const poolBalBefore = await staking.balanceOf(stakingReward.address);
+        const feeBalBefore = ethers.utils.formatEther(await reward.balanceOf(mockFeeCollector.address));
+
 
         // Exit Avalanche operation
         await uniV2Optimizer.exitAvalanche();
@@ -184,6 +199,8 @@ describe("UniV2Optimizer Unit Tests", function () {
         const userLPBalAfter = await staking.balanceOf(owner.address);
         const userRewardBalAfter = await reward.balanceOf(owner.address);
         const poolBalAfter = await staking.balanceOf(stakingReward.address);
+        const feeBalAfter = ethers.utils.formatEther(await reward.balanceOf(mockFeeCollector.address));
+
 
         // Assertion #1 : User LP Balance After > User LP Balance Before
         expect(userLPBalAfter > userLPBalBefore).to.equal(true);
@@ -193,6 +210,9 @@ describe("UniV2Optimizer Unit Tests", function () {
         
         // Assertion #3 : Staking Pool Balance Before > Staking Pool Balance After
         expect(poolBalBefore > poolBalAfter).to.equal(true);
+
+        // Assertion #4 : Fee Collector Balance Before < Fee Collector Balance After
+        expect(feeBalBefore < feeBalAfter).to.equal(true, "Fees not accrued");
     });
 
     it("should recover the lost / airdropped TokenC from the UniV2Optimizer contract", async () => {
