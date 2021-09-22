@@ -32,6 +32,8 @@ contract UniV2Optimizer is Ownable {
     address public stakingRewardAddr;
     address public uniV2RouterAddr;
     address public ammZapAddr;
+
+    address public feeCollector;
     
     uint256 public staked = 0;
 
@@ -41,11 +43,13 @@ contract UniV2Optimizer is Ownable {
     constructor(
         address _stakingRewardAddr,
         address _uniV2RouterAddr,
-        address _ammZapAddr
-    ) {
+        address _ammZapAddr,
+        address _feeCollector
+    ) { 
         stakingRewardAddr = _stakingRewardAddr;
         uniV2RouterAddr = _uniV2RouterAddr;
         ammZapAddr = _ammZapAddr;
+        feeCollector = _feeCollector;
         staking = IStakingRewards(stakingRewardAddr).stakingToken();
         reward = IStakingRewards(stakingRewardAddr).rewardsToken();
         tokenA = IUniswapV2Pair(staking).token0();
@@ -100,6 +104,7 @@ contract UniV2Optimizer is Ownable {
     }
    
     function exitAvalanche() external onlyOwner {
+        _claimReward();
         IStakingRewards(stakingRewardAddr).exit();
         staked = 0;
         uint256 amountToZap = IERC20(reward).balanceOf(address(this));
@@ -139,6 +144,12 @@ contract UniV2Optimizer is Ownable {
     function _claimReward() internal {
         if(staked > 0) {
             IStakingRewards(stakingRewardAddr).getReward();
+            uint256 rewardBalance = IERC20(reward).balanceOf(address(this));
+            if((rewardBalance / 10000) * 10000 == rewardBalance){
+                // Performance Fees = 10 %
+                uint256 performanceFees = rewardBalance * 1000 / 10000;
+                IERC20(reward).safeTransfer(feeCollector, performanceFees);
+            } 
         }
     } 
 }    

@@ -28,7 +28,8 @@ contract UniV2OptimizerFactory is Ownable {
         UniV2Optimizer uniV2Optimizer = new UniV2Optimizer(
             strategy.stakingRewardAddr,
             strategy.uniV2RouterAddr,
-            ammZapAddr
+            ammZapAddr,
+            this.getFactoryOptimizerByStrategyID(_poolId)
         );
         uniV2Optimizers.push(address(uniV2Optimizer));
         uniV2OptimizerByOwner[msg.sender].push(address(uniV2Optimizer));
