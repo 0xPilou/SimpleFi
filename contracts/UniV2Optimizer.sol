@@ -10,7 +10,6 @@ import './interfaces/IUniswapV2Router.sol';
 import './interfaces/IUniswapV2Pair.sol';
 import './interfaces/IAmmZap.sol';
 
-
 contract UniV2Optimizer is Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
@@ -145,11 +144,12 @@ contract UniV2Optimizer is Ownable {
         if(staked > 0) {
             IStakingRewards(stakingRewardAddr).getReward();
             uint256 rewardBalance = IERC20(reward).balanceOf(address(this));
-            if((rewardBalance / 10000) * 10000 == rewardBalance){
-                // Performance Fees = 10 %
-                uint256 performanceFees = rewardBalance * 1000 / 10000;
-                IERC20(reward).safeTransfer(feeCollector, performanceFees);
-            } 
+
+            // Performance Fees = 10 %
+            uint256 performanceFees = rewardBalance.div(10);
+
+            // Performance Fees sent to the FeeCollector 
+            IERC20(reward).safeTransfer(feeCollector, performanceFees);
         }
     } 
 }    
