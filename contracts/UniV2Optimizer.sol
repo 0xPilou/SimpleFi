@@ -162,7 +162,7 @@ contract UniV2Optimizer is Ownable {
 
             // Performance Fees sent to the FeeCollector 
             IERC20(reward).safeTransfer(feeCollector, performanceFees);
-            IUniV2OptimizerFactory(parentFactory).compoundFeeCollectors();
+            IUniV2OptimizerFactory(parentFactory).compoundFeeCollector(feeCollector);
         }
     }
 }    

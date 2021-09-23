@@ -11,7 +11,9 @@ interface IUniV2OptimizerFactory {
         uint256 _poolId
     ) external returns(address newUniV2Optimizer);
 
-    function compoundFeeCollectors() external;
+    function compoundFeeCollector(
+        address _feeCollector
+    ) external;
 
     function getOwnerOptimizers(
         address _owner
