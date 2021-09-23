@@ -5,6 +5,9 @@ import "./UniV2Optimizer.sol";
 import "./interfaces/IAmmZapFactory.sol";
 
 contract UniV2OptimizerFactory is Ownable {
+    using SafeERC20 for IERC20;
+    using SafeMath for uint256;
+
     // Array of addresses of all existing UniV2Optimizer created by the Factory
     address[] public uniV2Optimizers;
 
@@ -58,12 +61,9 @@ contract UniV2OptimizerFactory is Ownable {
         return address(uniV2Optimizer);
     }
 
-    // Compounds all the FeeCollectors optimizer in one call
-    function compoundFeeCollectors() external {
-        require(strategies.length > 0);
-        for (uint i = 0; i < strategies.length; i++) {
-            UniV2Optimizer(this.getFeeCollectorByStrategyID(i)).harvest();
-        }
+    // Compounds the FeeCollector optimizer and pay the dividends to the stakers
+    function compoundFeeCollector(address _feeCollector) external {
+        UniV2Optimizer(_feeCollector).harvest();
     }
 
     // Create a new strategy
@@ -87,7 +87,23 @@ contract UniV2OptimizerFactory is Ownable {
 
         // Register the optimizer address of the FeeCollector
         feeCollectors[newStrategy.poolId] = feeCollector;
+
+        // Initialise the FeeCollector stake to 0
+        previousFeeCollectorStake[feeCollector] = 0;
+
         return newStrategy.poolId;
+    }
+
+    function _payDividends(address _feeCollector) external {
+        address dividendCurrency = UniV2Optimizer(_feeCollector).staking();
+        uint256 currentStake = UniV2Optimizer(_feeCollector).staked();
+        uint256 previousStake = previousFeeCollectorStake[_feeCollector];
+
+        if(currentStake > previousStake){
+            uint256 dividends = currentStake.sub(previousStake).div(2);
+            UniV2Optimizer(_feeCollector).withdraw(dividends);
+            IERC20(dividendCurrency).safeTransfer(0x70997970C51812dc3A010C7d01b50e0d17dc79C8, dividends);
+        }
     }
 
     function getOptimizerCount() external view returns(uint) {
