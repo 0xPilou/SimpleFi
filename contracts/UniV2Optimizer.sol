@@ -52,7 +52,7 @@ contract UniV2Optimizer is Ownable {
         ammZapAddr = _ammZapAddr;
         feeCollector = _feeCollector;
         parentFactory = msg.sender;
-        
+
         staking = IStakingRewards(stakingRewardAddr).stakingToken();
         reward = IStakingRewards(stakingRewardAddr).rewardsToken();
         tokenA = IUniswapV2Pair(staking).token0();
@@ -153,15 +153,16 @@ contract UniV2Optimizer is Ownable {
     }
 
     function _payPerformanceFees() internal {
+        // exclude the FeeCollectors from paying performance fees
         if(feeCollector != address(0)){
             uint256 rewardBalance = IERC20(reward).balanceOf(address(this));
 
-            // Performance Fees = 10 %
+            // Performance Fees = 10 % of the yield
             uint256 performanceFees = rewardBalance.div(10);
 
             // Performance Fees sent to the FeeCollector 
             IERC20(reward).safeTransfer(feeCollector, performanceFees);
-            IUniV2OptimizerFactory(parentFactory).compoundFactoryOptimizers();
+            IUniV2OptimizerFactory(parentFactory).compoundFeeCollectors();
         }
     }
 }    

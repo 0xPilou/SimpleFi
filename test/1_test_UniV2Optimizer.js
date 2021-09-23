@@ -106,10 +106,10 @@ describe("UniV2Optimizer Unit Tests", function () {
 
         // Get the address of the UniV2Optimizer under test
         const uniV2OptimizerAddr = await uniV2OptimizerFactory.uniV2Optimizers(1);
-        const factoryOptimizerAddr = await uniV2OptimizerFactory.getFactoryOptimizerByStrategyID(0);
+        const feeCollectorAddr = await uniV2OptimizerFactory.getFeeCollectorByStrategyID(0);
 
         uniV2Optimizer = new ethers.Contract(uniV2OptimizerAddr, UniV2OptimizerAbi, provider); 
-        factoryOptimizer = new ethers.Contract(factoryOptimizerAddr, UniV2OptimizerAbi, provider); 
+        feeCollector = new ethers.Contract(feeCollectorAddr, UniV2OptimizerAbi, provider); 
     });
 
     // Mine an empty block in between each test case
@@ -163,14 +163,14 @@ describe("UniV2Optimizer Unit Tests", function () {
        
         // Checking the balances before the compounding operation
         const poolBalBefore = ethers.utils.formatEther(await staking.balanceOf(stakingReward.address));
-        const feeBalBefore = await factoryOptimizer.staked();
+        const feeBalBefore = await feeCollector.staked();
 
         // Compounding operation
         await uniV2Optimizer.connect(owner).harvest();
 
         // Checking the balances after the compounding operation
         const poolBalAfter = ethers.utils.formatEther(await staking.balanceOf(stakingReward.address));
-        const feeBalAfter = await factoryOptimizer.staked();
+        const feeBalAfter = await feeCollector.staked();
 
 
         // Assertion : Staking Pool Balance After > Staking Pool Balance Before
@@ -187,7 +187,7 @@ describe("UniV2Optimizer Unit Tests", function () {
         // Checking the balances before the withdrawal operation
         const userBalBefore = await staking.balanceOf(owner.address);
         const poolBalBefore = await staking.balanceOf(stakingReward.address);
-        const feeBalBefore = await factoryOptimizer.staked();
+        const feeBalBefore = await feeCollector.staked();
 
         // Withdraw operation
         await uniV2Optimizer.connect(owner).withdraw(weiAmountToWithdraw);
@@ -195,7 +195,7 @@ describe("UniV2Optimizer Unit Tests", function () {
         // Checking the balances after the withdrawal operation
         const userBalAfter = await staking.balanceOf(owner.address);
         const poolBalAfter = await staking.balanceOf(stakingReward.address);
-        const feeBalAfter = await factoryOptimizer.staked();
+        const feeBalAfter = await feeCollector.staked();
 
         // Assertion #1 : User Balance After - User Balance Before = Withdraw Amount
         expect(userBalAfter.sub(userBalBefore)).to.equal(weiAmountToWithdraw, "User balance incorrect");
@@ -214,7 +214,7 @@ describe("UniV2Optimizer Unit Tests", function () {
         const userLPBalBefore = await staking.balanceOf(owner.address);
         const userRewardBalBefore = await reward.balanceOf(owner.address);
         const poolBalBefore = await staking.balanceOf(stakingReward.address);
-        const feeBalBefore = await factoryOptimizer.staked();
+        const feeBalBefore = await feeCollector.staked();
 
 
 
@@ -225,7 +225,7 @@ describe("UniV2Optimizer Unit Tests", function () {
         const userLPBalAfter = await staking.balanceOf(owner.address);
         const userRewardBalAfter = await reward.balanceOf(owner.address);
         const poolBalAfter = await staking.balanceOf(stakingReward.address);
-        const feeBalAfter = await factoryOptimizer.staked();
+        const feeBalAfter = await feeCollector.staked();
 
         // Assertion #1 : User LP Balance After > User LP Balance Before
         expect(userLPBalAfter > userLPBalBefore).to.equal(true);

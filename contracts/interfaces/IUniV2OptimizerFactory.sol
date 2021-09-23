@@ -11,13 +11,13 @@ interface IUniV2OptimizerFactory {
         uint256 _poolId
     ) external returns(address newUniV2Optimizer);
 
-    function compoundFactoryOptimizers() external;
+    function compoundFeeCollectors() external;
 
     function getOwnerOptimizers(
         address _owner
     ) external view returns(address[] memory);
 
-    function getFactoryOptimizerByStrategyID(
+    function getFeeCollectorByStrategyID(
         uint256 _poolId
     ) external view returns(address);
 

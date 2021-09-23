@@ -60,10 +60,10 @@ describe("UniV2OptimizerFactory Unit Tests", function () {
     });
 
     it("should be the owner of the newly created optimizer", async () => {
-        const factoryOptimizerAddr = await uniV2OptimizerFactory.getFactoryOptimizerByStrategyID(0);
-        factoryOptimizer = new ethers.Contract(factoryOptimizerAddr, UniV2OptimizerAbi, provider);
-        const factoryOptimizerOwner = await factoryOptimizer.owner();
-        expect(factoryOptimizerOwner).to.equal(uniV2OptimizerFactory.address)
+        const feeCollectorAddr = await uniV2OptimizerFactory.getFeeCollectorByStrategyID(0);
+        feeCollector = new ethers.Contract(feeCollectorAddr, UniV2OptimizerAbi, provider);
+        const feeCollectorOwner = await feeCollector.owner();
+        expect(feeCollectorOwner).to.equal(uniV2OptimizerFactory.address)
     });
     
     it("should get the number of strategy supported", async () => {
