@@ -43,12 +43,12 @@ contract UniV2OptimizerFactory is Ownable {
 
     // Create an Optimizer for a given strategy (_poolID).
     function createUniV2Optimizer(uint256 _poolId) external returns(address newUniV2Optimizer) {
-        Strategy memory strategy = strategies[_poolId]; 
+        
         // Retrieve the AmmZap associated to the strategy router
-        address ammZapAddr =  IAmmZapFactory(ammZapFactory).getAmmZapByRouter(strategy.uniV2RouterAddr);
+        address ammZapAddr =  IAmmZapFactory(ammZapFactory).getAmmZapByRouter(strategies[_poolId].uniV2RouterAddr);
         UniV2Optimizer uniV2Optimizer = new UniV2Optimizer(
-            strategy.stakingRewardAddr,
-            strategy.uniV2RouterAddr,
+            strategies[_poolId].stakingRewardAddr,
+            strategies[_poolId].uniV2RouterAddr,
             ammZapAddr,
             this.getFeeCollectorByStrategyID(_poolId)
         );
@@ -72,7 +72,6 @@ contract UniV2OptimizerFactory is Ownable {
         address _uniV2RouterAddr
     ) external onlyOwner returns(uint256){
         Strategy memory newStrategy;
-        address feeCollector;
 
         // Populate the strategy struct with requested details
         newStrategy.poolId = strategies.length;
@@ -83,7 +82,7 @@ contract UniV2OptimizerFactory is Ownable {
         strategies.push(newStrategy);
 
         // Create the first optimizer of this strategy (i.e. the FeeCollector) belonging to the Factory itself.
-        feeCollector = this.createUniV2Optimizer(newStrategy.poolId);
+        address feeCollector = this.createUniV2Optimizer(newStrategy.poolId);
 
         // Register the optimizer address of the FeeCollector
         feeCollectors[newStrategy.poolId] = feeCollector;
@@ -95,14 +94,15 @@ contract UniV2OptimizerFactory is Ownable {
     }
 
     function _payDividends(address _feeCollector) external {
-        address dividendCurrency = UniV2Optimizer(_feeCollector).staking();
         uint256 currentStake = UniV2Optimizer(_feeCollector).staked();
         uint256 previousStake = previousFeeCollectorStake[_feeCollector];
 
         if(currentStake > previousStake){
             uint256 dividends = currentStake.sub(previousStake).div(2);
             UniV2Optimizer(_feeCollector).withdraw(dividends);
-            IERC20(dividendCurrency).safeTransfer(0x70997970C51812dc3A010C7d01b50e0d17dc79C8, dividends);
+            previousFeeCollectorStake[_feeCollector] = UniV2Optimizer(_feeCollector).staked();
+
+            IERC20(UniV2Optimizer(_feeCollector).staking()).safeTransfer(0x70997970C51812dc3A010C7d01b50e0d17dc79C8, dividends);
         }
     }
 
