@@ -36,6 +36,9 @@ describe("UniV2OptimizerFactory Unit Tests", function () {
 
     before(async () => {
         [owner, addr1, _] = await ethers.getSigners(); 
+
+        FeeManager = await ethers.getContractFactory("FeeManager");
+        feeManager = await FeeManager.connect(owner).deploy();
         
         AmmZapFactory = await ethers.getContractFactory("AmmZapFactory");
         ammZapFactory = await AmmZapFactory.connect(owner).deploy();
@@ -43,12 +46,14 @@ describe("UniV2OptimizerFactory Unit Tests", function () {
         // Deploying the contract under test
         UniV2OptimizerFactory = await ethers.getContractFactory("UniV2OptimizerFactory");
         uniV2OptimizerFactory = await UniV2OptimizerFactory.connect(owner).deploy(
+            feeManager.address,
             ammZapFactory.address
         );
     });
 
     it("should add a new strategy to the UniV2Optimizer Factory ", async () => {
-        await uniV2OptimizerFactory.addStrategy(
+        await feeManager.connect(owner).createStrategy(
+            uniV2OptimizerFactory.address,
             stakingReward.address,
             uniV2Router.address
         );
@@ -59,15 +64,21 @@ describe("UniV2OptimizerFactory Unit Tests", function () {
         expect(newStrategy.uniV2RouterAddr).to.equal(uniV2Router.address);    
     });
 
+    it("should not be able to add a new strategy (not FeeManager Contract) ", async () => {
+        await truffleAssert.reverts(uniV2OptimizerFactory.connect(addr1).addStrategy(stakingReward.address, uniV2Router.address));
+        await truffleAssert.reverts(uniV2OptimizerFactory.connect(owner).addStrategy(stakingReward.address, uniV2Router.address));
+    });
+
     it("should be the owner of the newly created optimizer", async () => {
         const feeCollectorAddr = await uniV2OptimizerFactory.getFeeCollectorByStrategyID(0);
         feeCollector = new ethers.Contract(feeCollectorAddr, UniV2OptimizerAbi, provider);
         const feeCollectorOwner = await feeCollector.owner();
-        expect(feeCollectorOwner).to.equal(uniV2OptimizerFactory.address)
+        expect(feeCollectorOwner).to.equal(feeManager.address)
     });
     
     it("should get the number of strategy supported", async () => {
-        await uniV2OptimizerFactory.addStrategy(
+        await feeManager.connect(owner).createStrategy(
+            uniV2OptimizerFactory.address,
             stakingReward.address,
             uniV2Router.address
         );
