@@ -10,6 +10,7 @@ import './interfaces/IStakingRewards.sol';
 import './interfaces/IUniswapV2Router.sol';
 import './interfaces/IUniswapV2Pair.sol';
 import './interfaces/IAmmZap.sol';
+import './interfaces/IFeeManager.sol';
 
 contract UniV2Optimizer is Ownable {
     using SafeERC20 for IERC20;
@@ -155,6 +156,7 @@ contract UniV2Optimizer is Ownable {
     function _payPerformanceFees() internal {
         // exclude the FeeCollectors from paying performance fees
         if(feeCollector != address(0)){
+            address feeManager = IUniV2OptimizerFactory(parentFactory).feeManager();
             uint256 rewardBalance = IERC20(reward).balanceOf(address(this));
 
             // Performance Fees = 10 % of the yield
@@ -162,7 +164,7 @@ contract UniV2Optimizer is Ownable {
 
             // Performance Fees sent to the FeeCollector 
             IERC20(reward).safeTransfer(feeCollector, performanceFees);
-            IUniV2OptimizerFactory(parentFactory).compoundFeeCollector(feeCollector);
+            IFeeManager(feeManager).compoundFeeCollector(feeCollector);
         }
     }
 }    
