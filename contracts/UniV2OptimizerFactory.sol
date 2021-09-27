@@ -60,6 +60,9 @@ contract UniV2OptimizerFactory {
         // Create the first optimizer of this strategy (i.e. the FeeCollector) belonging to the FeeManager.
         address feeCollector = this.createUniV2Optimizer(newStrategy.poolId);
 
+        // Transfer the ownership of the FeeCollector Optimizer to the FeeManager
+        UniV2Optimizer(feeCollector).transferOwnership(msg.sender);
+
         // Register the optimizer address of the FeeCollector
         feeCollectors[newStrategy.poolId] = feeCollector;
 
