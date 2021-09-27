@@ -4,6 +4,9 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const truffleAssert = require('truffle-assertions');
+const fs = require('fs');
+
+const polygonAlchemyKey = fs.readFileSync("secretPolygon").toString().trim();
 
 describe("UniV2Optimizer Unit Tests", function () {  
     
@@ -65,6 +68,19 @@ describe("UniV2Optimizer Unit Tests", function () {
     let ammZap;
 
     before(async function () {
+
+        // Resetting the Hardhat Mainnet Fork Network to block 19146010
+        await network.provider.request({
+            method: "hardhat_reset",
+            params: [
+              {
+                forking: {
+                  jsonRpcUrl: `${polygonAlchemyKey}`,
+                  blockNumber: 19146010
+                },
+              },
+            ],
+        });
 
         // WETH Whale           : 0xd3d176F7e4b43C70a68466949F6C64F06Ce75BB9
         // LP Whale             : 0xdA8479E5b8A273A403148a779Fbb8903DC2C739d

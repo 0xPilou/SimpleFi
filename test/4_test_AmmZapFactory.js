@@ -4,7 +4,10 @@
  const { expect } = require("chai");
  const { ethers } = require("hardhat");
  const truffleAssert = require('truffle-assertions');
+ const fs = require('fs');
 
+ const polygonAlchemyKey = fs.readFileSync("secretPolygon").toString().trim();
+ 
 describe("AmmZapFactory Unit Tests", function () {
 
     /* ABIs */
@@ -29,6 +32,20 @@ describe("AmmZapFactory Unit Tests", function () {
     let ammZapFactory;
 
     before(async () => {
+
+        // Resetting the Hardhat Mainnet Fork Network to block 19146010
+        await network.provider.request({
+            method: "hardhat_reset",
+            params: [
+              {
+                forking: {
+                  jsonRpcUrl: `${polygonAlchemyKey}`,
+                  blockNumber: 19146010
+                },
+              },
+            ],
+        });
+
         [owner, addr1, _] = await ethers.getSigners(); 
         
         // Deploying the contract under test
