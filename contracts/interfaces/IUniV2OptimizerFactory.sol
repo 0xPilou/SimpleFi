@@ -2,6 +2,9 @@ pragma solidity ^0.8.0;
 
 interface IUniV2OptimizerFactory {
  
+    function feeManager() external view returns (address);
+
+
      function addStrategy(
         address _stakingRewardAddr,
         address _uniV2RouterAddr

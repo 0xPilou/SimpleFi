@@ -3,6 +3,9 @@ pragma solidity ^0.8.0;
 
 interface IUniV2Optimizer {
   
+    function staked() external view returns (uint256);
+    function staking() external view returns (address);
+    
     function stake(uint256 _amount) external;
     
     function withdraw(uint256 _amount) external;
