@@ -4,15 +4,16 @@ pragma solidity ^0.8.0;
 import "./UniV2Optimizer.sol";
 import "./interfaces/IAmmZapFactory.sol";
 
-contract UniV2OptimizerFactory is Ownable {
-    using SafeERC20 for IERC20;
-    using SafeMath for uint256;
+contract UniV2OptimizerFactory {
 
     // Array of addresses of all existing UniV2Optimizer created by the Factory
     address[] public uniV2Optimizers;
 
     // Address of the AmmZapFactory
     address public ammZapFactory;
+
+    // Address of the FeeManager
+    address public feeManager;
 
     // Array of all the Strategies supported by the UniV2OptimizerFactory
     Strategy[] public strategies;
@@ -33,12 +34,41 @@ contract UniV2OptimizerFactory is Ownable {
     // Mapping storing the FeeCollector address of a given Strategy
     mapping(uint256 => address) public feeCollectors; 
 
-    // Mapping storing the previous amount of token staked (before dividends payment) of a given Fee Collector
-    mapping(address => uint256) public previousFeeCollectorStake;
-
-
-    constructor(address _ammZapFactory) {
+    constructor(address _feeManager, address _ammZapFactory) {
+        feeManager = _feeManager;
         ammZapFactory = _ammZapFactory;        
+    }
+
+    // Create a new strategy
+    function addStrategy(
+        address _stakingRewardAddr,
+        address _uniV2RouterAddr
+    ) external returns(uint256){
+        // Can only be called by the FeeManager contract
+        require(msg.sender == feeManager);
+
+        Strategy memory newStrategy;
+
+        // Populate the strategy struct with requested parameters
+        newStrategy.poolId = strategies.length;
+        newStrategy.stakingRewardAddr = _stakingRewardAddr;
+        newStrategy.uniV2RouterAddr = _uniV2RouterAddr;
+
+        // Add the new strategy to the contract strategies storage  
+        strategies.push(newStrategy);
+
+        // Create the first optimizer of this strategy (i.e. the FeeCollector) belonging to the FeeManager.
+        address feeCollector = this.createUniV2Optimizer(newStrategy.poolId);
+
+        // Register the optimizer address of the FeeCollector
+        feeCollectors[newStrategy.poolId] = feeCollector;
+
+////////////////////////////////////////////////////////////////////////
+        // Initialise the FeeCollector stake to 0
+        //previousFeeCollectorStake[feeCollector] = 0;
+////////////////////////////////////////////////////////////////////////
+
+        return newStrategy.poolId;
     }
 
     // Create an Optimizer for a given strategy (_poolID).
@@ -54,57 +84,16 @@ contract UniV2OptimizerFactory is Ownable {
         );
         // Register the newly created optimizer address to the contract storage
         uniV2Optimizers.push(address(uniV2Optimizer));
+
         // Register the newly created optimizer address for the given user
         uniV2OptimizerByOwner[msg.sender].push(address(uniV2Optimizer));
+
         // Transfer the Optimizer ownership to the user
         uniV2Optimizer.transferOwnership(msg.sender);
+
         return address(uniV2Optimizer);
     }
 
-    // Compounds the FeeCollector optimizer and pay the dividends to the stakers
-    function compoundFeeCollector(address _feeCollector) external {
-        UniV2Optimizer(_feeCollector).harvest();
-    }
-
-    // Create a new strategy
-    function addStrategy(
-        address _stakingRewardAddr,
-        address _uniV2RouterAddr
-    ) external onlyOwner returns(uint256){
-        Strategy memory newStrategy;
-
-        // Populate the strategy struct with requested details
-        newStrategy.poolId = strategies.length;
-        newStrategy.stakingRewardAddr = _stakingRewardAddr;
-        newStrategy.uniV2RouterAddr = _uniV2RouterAddr;
-
-        // Add the new strategy to the contract storage of strategies 
-        strategies.push(newStrategy);
-
-        // Create the first optimizer of this strategy (i.e. the FeeCollector) belonging to the Factory itself.
-        address feeCollector = this.createUniV2Optimizer(newStrategy.poolId);
-
-        // Register the optimizer address of the FeeCollector
-        feeCollectors[newStrategy.poolId] = feeCollector;
-
-        // Initialise the FeeCollector stake to 0
-        previousFeeCollectorStake[feeCollector] = 0;
-
-        return newStrategy.poolId;
-    }
-
-    function _payDividends(address _feeCollector) external {
-        uint256 currentStake = UniV2Optimizer(_feeCollector).staked();
-        uint256 previousStake = previousFeeCollectorStake[_feeCollector];
-
-        if(currentStake > previousStake){
-            uint256 dividends = currentStake.sub(previousStake).div(2);
-            UniV2Optimizer(_feeCollector).withdraw(dividends);
-            previousFeeCollectorStake[_feeCollector] = UniV2Optimizer(_feeCollector).staked();
-
-            IERC20(UniV2Optimizer(_feeCollector).staking()).safeTransfer(0x70997970C51812dc3A010C7d01b50e0d17dc79C8, dividends);
-        }
-    }
 
     function getOptimizerCount() external view returns(uint) {
         return uniV2Optimizers.length;
