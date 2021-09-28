@@ -137,8 +137,7 @@ contract UniV2Optimizer is Ownable {
     }
 
     function getPendingRewards() external view onlyOwner returns(uint256) {
-        uint256 pendingReward = IStakingRewards(stakingRewardAddr).earned(address(this));
-        return pendingReward;
+        return IStakingRewards(stakingRewardAddr).earned(address(this));
     }
 
     function _stakeAll() internal {
@@ -147,7 +146,7 @@ contract UniV2Optimizer is Ownable {
     }
 
     function _claimReward() internal {
-        if(staked > 0) {
+        if(this.getPendingRewards() > 0) {
             IStakingRewards(stakingRewardAddr).getReward();
             _payPerformanceFees();
         }
