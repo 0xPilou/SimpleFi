@@ -5,6 +5,7 @@ interface IUniV2Optimizer {
   
     function staked() external view returns (uint256);
     function staking() external view returns (address);
+    function ammZapAddr() external view returns (address);
     
     function stake(uint256 _amount) external;
     
