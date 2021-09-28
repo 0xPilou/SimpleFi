@@ -209,6 +209,14 @@ describe("UniV2Optimizer Unit Tests", function () {
         expect(dividendBalBefore < dividendBalAfter).to.equal(true, "Dividends not accrued");
     });
 
+    it("should return the quantity of pending reward to be claimed from the StakingReward contract", async () => {
+
+        pendingReward = await uniV2Optimizer.connect(owner).getPendingRewards();
+
+        // Assertion : Pending Reward should be greater than 0
+        expect(pendingReward.toNumber() > 0).to.equal(true);
+    });
+
     it("should withdraw 10 LP tokens from the Staking Reward Pool", async () => {
         
         // Quantity to withdraw for this test
