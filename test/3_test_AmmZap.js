@@ -21,6 +21,9 @@ describe("AmmZap Unit Tests", function () {
     // WMATIC-MUST LP
     const TokenLPAddress = "0x80676b414a905De269D0ac593322Af821b683B92";
 
+    // SDT-WETH LP 
+    const TokenLP2Address = "0x7B72870DA19fFd973D7D3404446a03CeC8F73b4a";
+
     // WMATIC
     const TokenAAddress = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
 
@@ -39,6 +42,8 @@ describe("AmmZap Unit Tests", function () {
 
     // Instantiating the existing mainnet fork contracts
     lp = new ethers.Contract(TokenLPAddress, TokenLPAbi, provider);
+    lp2 = new ethers.Contract(TokenLP2Address, TokenLPAbi, provider);
+
     tokenA = new ethers.Contract(TokenAAddress, TokenAAbi, provider);
     tokenB = new ethers.Contract(TokenBAddress, TokenBAbi, provider);
     tokenC = new ethers.Contract(TokenCAddress, TokenCAbi, provider);
@@ -245,6 +250,31 @@ describe("AmmZap Unit Tests", function () {
 
         // Assertion #1 : User WETH Balance After > User WETH Balance Before
         expect(userMUSTBalAfter > userMUSTBalBefore).to.equal(true)
+
+        // Assertion #2 : User LP Balance Before < User LP Balance After
+        expect(userLPBal.sub(userLPBal.div(2))).to.equal(userLPBalAfter)
+    });
+
+    it("should swap half of the remaining MUST-WMATIC LP tokens into SDT-WETH LP tokens", async () => {
+        const userLPBal = await lp.balanceOf(nonOwner.address);
+        const userLP2Bal = await lp2.balanceOf(nonOwner.address);
+        
+        // Approving half of the remaining MUST-WMATIC tokens to be swapped by the AMMZap
+        await lp.connect(nonOwner).approve(ammZap.address, userLPBal.div(2));
+
+        // Swapping half of the MUST-WMATIC LP tokens into SDT-WETH LP Tokens
+        await ammZap.connect(nonOwner).swapLP(
+            lp.address,
+            lp2.address,
+            userLPBal.div(2),
+        );
+        
+        // Checking the balances after the unzapping operation
+        const userLPBalAfter = await lp.balanceOf(nonOwner.address);      
+        const userLP2BalAfter = await lp2.balanceOf(nonOwner.address);      
+
+        // Assertion #1 : User SDT-WETH LP Balance After > User SDT-WETH LP Balance Before
+        expect(userLP2BalAfter > userLP2Bal).to.equal(true)
 
         // Assertion #2 : User LP Balance Before < User LP Balance After
         expect(userLPBal.sub(userLPBal.div(2))).to.equal(userLPBalAfter)
