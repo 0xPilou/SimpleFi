@@ -287,6 +287,37 @@ describe("UniV2Optimizer Unit Tests", function () {
         expect(dividendBalBefore < dividendBalAfter).to.equal(true, "Dividends not accrued");
     });
 
+    it("should zap WETH into MUST-WMATIC LP and stake it to the Staking Reward Pool", async () => {
+        // Quantity to zap and stake for this test
+        const amountToZapAndStake = 10;
+        const weiAmountToZapAndStake = ethers.utils.parseEther(amountToZapAndStake.toString());
+        const ammZapAddr = await uniV2Optimizer.ammZapAddr();
+
+        // Transfering 10 LP tokens from a whale address to the UniV2Optimizer owner address
+        await tokenC.connect(whaleWETH).transfer(owner.address, weiAmountToZapAndStake);
+
+        // Checking the balances before the zapping and staking operation
+        const userWETHBalBefore = await tokenC.balanceOf(owner.address);      
+        const poolBalBefore = await staking.balanceOf(stakingReward.address);
+        
+        // Approving the 10 LP tokens to be spent by the UniV2Optimizer
+        await tokenC.connect(owner).approve(uniV2Optimizer.address, weiAmountToZapAndStake);
+
+        // Staking the 10 LP tokens on the UniV2Optimizer
+        await uniV2Optimizer.connect(owner).zapAndStake(tokenC.address, weiAmountToZapAndStake);
+        
+        // Checking the balances after the staking operation
+        const userWETHBalAfter = await tokenC.balanceOf(owner.address);      
+        const poolBalAfter = await staking.balanceOf(stakingReward.address);      
+
+        // Assertion #1 : Staking Pool Balance After > Staking Pool Balance Before
+        expect(poolBalAfter > poolBalBefore).to.equal(true)
+
+        // Assertion #2 : User WETH Balance After = User WETH Balance Before - 10
+        expect(userWETHBalAfter).to.equal(userWETHBalBefore.sub(weiAmountToZapAndStake))
+
+    });
+
     it("should recover the lost / airdropped TokenC from the UniV2Optimizer contract", async () => {
 
         const amountToTransfer = 10;
