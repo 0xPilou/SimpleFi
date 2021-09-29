@@ -14,6 +14,8 @@ contract FeeManager is Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
+    address constant WETH = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"; 
+
     // Mapping storing the previous amount of token staked (before dividends payment) of a given Fee Collector
     mapping(address => uint256) public previousFeeCollectorStake;
 
@@ -38,25 +40,30 @@ contract FeeManager is Ownable {
 
     // This function terminate a FeeCollector operation
     // It is called once the strategy corresponding to the FeeCollector no longer yields reward
-    function retireFeeCollector(address _feeCollector) external onlyOwner {
+    function retireFeeCollector(address _feeCollector, address _migrateTo) external onlyOwner {
         // Can only retire a FeeCollector in operation
         require(retirementStatus[_feeCollector] == false);
+
+        // Can only migrate Fees to another FeeCollector
+        require(IUniV2Optimizer(_migrateTo).feeCollector() == address(0));
+
         uint256 totalStake = IUniV2Optimizer(_feeCollector).staked();
         address stakingToken = IUniV2Optimizer(_feeCollector).staking();
-        address ammZap = IUniV2Optimizer(_feeCollector).ammZapAddr();
 
-        // Set the FeeCollector Retirement status to true
-        retirementStatus[_feeCollector] = true;
+        address ammZap = IUniV2Optimizer(_feeCollector).ammZapAddr();
         
         // Withdraw the total stake
         IUniV2Optimizer(_feeCollector).withdraw(totalStake);
 
         // Unzap Staking token into DAI tokens
-        IAmmZap(ammZap).unzap(stakingToken, DAI, totalStake);
+        IAmmZap(ammZap).unzap(stakingToken, WETH, totalStake);
 
-        // Transfer DAI tokens to SIFI Staking Pool
-        daiAmount = IERC20(DAI).balanceOf(address(this));
-        IERC20(DAI).safeTransfer(0x70997970C51812dc3A010C7d01b50e0d17dc79C8, daiAmount);
+        // Zap and stake into the replacement FeeCollector 
+        wethAmount = IERC20(WETH).balanceOf(address(this));
+        IUniV2Optimizer(_migrateTo).zapAndStake(WETH, daiAmount);
+        
+        // Set the FeeCollector Retirement status to true
+        retirementStatus[_feeCollector] = true;
     }
 
     function _payDividends(address _feeCollector) internal {
