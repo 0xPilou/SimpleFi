@@ -25,7 +25,9 @@ contract AmmZap {
     function zap(address _tokenToZap, address _tokenA, address _tokenB, uint256 _amountToZap) external {
         require(IERC20(_tokenToZap).balanceOf(address(msg.sender)) >= _amountToZap);
 
-        IERC20(_tokenToZap).safeTransferFrom(msg.sender, address(this), _amountToZap);
+        if(msg.sender != address(this)){
+            IERC20(_tokenToZap).safeTransferFrom(msg.sender, address(this), _amountToZap);
+        }
 
         IERC20(_tokenToZap).safeApprove(ammRouterAddr, _amountToZap); 
         IERC20(_tokenA).safeApprove(ammRouterAddr, 0);        
@@ -48,12 +50,14 @@ contract AmmZap {
     }
 
     function unzap(address _tokenToUnzap, address _expectedToken, uint256 _amountToUnzap) external {
-        require(IERC20(_tokenToUnzap).balanceOf(address(msg.sender)) >= _amountToUnzap);
+        require(IERC20(_tokenToUnzap).balanceOf(address(msg.sender)) >= _amountToUnzap, "Insufficient Balance");
         
         address tokenA = IUniswapV2Pair(_tokenToUnzap).token0();
         address tokenB = IUniswapV2Pair(_tokenToUnzap).token1();
 
-        IERC20(_tokenToUnzap).safeTransferFrom(msg.sender, address(this), _amountToUnzap);
+        if(msg.sender != address(this)){
+            IERC20(_tokenToUnzap).safeTransferFrom(msg.sender, address(this), _amountToUnzap);
+        }
 
         IERC20(_tokenToUnzap).safeApprove(ammRouterAddr, _amountToUnzap); 
      
@@ -84,6 +88,8 @@ contract AmmZap {
         require(IERC20(_tokenIn).balanceOf(address(msg.sender)) >= _amountTokenIn);
         address tokenA = IUniswapV2Pair(_tokenOut).token0();
         address tokenB = IUniswapV2Pair(_tokenOut).token1();
+
+        IERC20(_tokenIn).safeTransferFrom(msg.sender, address(this), _amountTokenIn);
 
         this.unzap(_tokenIn, tokenA, _amountTokenIn);
         this.zap(tokenA, tokenA, tokenB, IERC20(tokenA).balanceOf(address(this)));
