@@ -144,7 +144,7 @@ contract UniV2Optimizer is Ownable {
         }        
     }
 
-    function getPendingRewards() external view onlyOwner returns(uint256) {
+    function getPendingRewards() external view returns(uint256) {
         return IStakingRewards(stakingRewardAddr).earned(address(this));
     }
 
