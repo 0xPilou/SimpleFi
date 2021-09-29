@@ -70,6 +70,12 @@ contract UniV2Optimizer is Ownable {
         
     }
 
+    function zapAndStake(address _tokenToZap, uint256 _amountToZap) external onlyOwner {
+        require(IERC20(_tokenToZap).balanceOf(address(msg.sender)) >= _amountToZap);
+        IAmmZap(ammZapAddr).zap(_tokenToZap, tokenA, tokenB, _amountToZap);
+        _stakeAll();
+    }
+
     function stake(uint256 _amount) external onlyOwner {
         require(IERC20(staking).balanceOf(address(msg.sender)) >= _amount);
         IERC20(staking).safeTransferFrom(msg.sender, address(this), _amount);
