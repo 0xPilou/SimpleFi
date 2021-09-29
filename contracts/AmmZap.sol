@@ -80,6 +80,16 @@ contract AmmZap {
         }
     }
 
+    function swapLP(address _tokenIn, address _tokenOut, uint256 _amountTokenIn) external {
+        require(IERC20(_tokenIn).balanceOf(address(msg.sender)) >= _amountTokenIn);
+        address tokenA = IUniswapV2Pair(_tokenOut).token0();
+        address tokenB = IUniswapV2Pair(_tokenOut).token1();
+
+        this.unzap(_tokenIn, tokenA, _amountTokenIn);
+        this.zap(tokenA, tokenA, tokenB, IERC20(tokenA).balanceOf(address(this)));
+        IERC20(_tokenOut).safeTransfer(msg.sender, IERC20(_tokenOut).balanceOf(address(this)));
+    }
+
     function _swapToken(address _tokenIn, address _tokenOut, address _to, uint256 _amount) internal {
         address[] memory path = new address[](2);
         path[0] = _tokenIn;
