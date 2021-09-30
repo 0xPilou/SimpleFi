@@ -38,7 +38,7 @@ describe("UniV2OptimizerFactory Unit Tests", function () {
     let ammZapFactory;
 
     before(async () => {
-        
+
         // Resetting the Hardhat Mainnet Fork Network to block 19146010
         await network.provider.request({
             method: "hardhat_reset",
@@ -54,8 +54,8 @@ describe("UniV2OptimizerFactory Unit Tests", function () {
 
         [owner, addr1, _] = await ethers.getSigners(); 
 
-        FeeManager = await ethers.getContractFactory("FeeManager");
-        feeManager = await FeeManager.connect(owner).deploy();
+        Treasury = await ethers.getContractFactory("Treasury");
+        treasury = await Treasury.connect(owner).deploy();
         
         AmmZapFactory = await ethers.getContractFactory("AmmZapFactory");
         ammZapFactory = await AmmZapFactory.connect(owner).deploy();
@@ -63,13 +63,13 @@ describe("UniV2OptimizerFactory Unit Tests", function () {
         // Deploying the contract under test
         UniV2OptimizerFactory = await ethers.getContractFactory("UniV2OptimizerFactory");
         uniV2OptimizerFactory = await UniV2OptimizerFactory.connect(owner).deploy(
-            feeManager.address,
+            treasury.address,
             ammZapFactory.address
         );
     });
 
     it("should add a new strategy to the UniV2Optimizer Factory ", async () => {
-        await feeManager.connect(owner).createStrategy(
+        await treasury.connect(owner).createStrategy(
             uniV2OptimizerFactory.address,
             stakingReward.address,
             uniV2Router.address
@@ -81,7 +81,7 @@ describe("UniV2OptimizerFactory Unit Tests", function () {
         expect(newStrategy.uniV2RouterAddr).to.equal(uniV2Router.address);    
     });
 
-    it("should not be able to add a new strategy (not FeeManager Contract) ", async () => {
+    it("should not be able to add a new strategy (not Treasury Contract) ", async () => {
         await truffleAssert.reverts(uniV2OptimizerFactory.connect(addr1).addStrategy(stakingReward.address, uniV2Router.address));
         await truffleAssert.reverts(uniV2OptimizerFactory.connect(owner).addStrategy(stakingReward.address, uniV2Router.address));
     });
@@ -90,11 +90,11 @@ describe("UniV2OptimizerFactory Unit Tests", function () {
         const feeCollectorAddr = await uniV2OptimizerFactory.getFeeCollectorByStrategyID(0);
         feeCollector = new ethers.Contract(feeCollectorAddr, UniV2OptimizerAbi, provider);
         const feeCollectorOwner = await feeCollector.owner();
-        expect(feeCollectorOwner).to.equal(feeManager.address)
+        expect(feeCollectorOwner).to.equal(treasury.address)
     });
     
     it("should get the number of strategy supported", async () => {
-        await feeManager.connect(owner).createStrategy(
+        await treasury.connect(owner).createStrategy(
             uniV2OptimizerFactory.address,
             stakingReward.address,
             uniV2Router.address

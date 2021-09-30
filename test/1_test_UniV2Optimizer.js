@@ -62,7 +62,7 @@ describe("UniV2Optimizer Unit Tests", function () {
     let uniV2OptimizerFactory;
 
     let feeManger;
-    let FeeManager;
+    let Treasury;
 
     let AmmZap;
     let ammZap;
@@ -107,19 +107,19 @@ describe("UniV2Optimizer Unit Tests", function () {
         ammZapFactory = await AmmZapFactory.connect(owner).deploy();
         await ammZapFactory.connect(owner).createAmmZap(uniV2Router.address);
 
-        FeeManager = await ethers.getContractFactory("FeeManager");
-        feeManager = await FeeManager.connect(owner).deploy();
+        Treasury = await ethers.getContractFactory("Treasury");
+        treasury = await Treasury.connect(owner).deploy();
 
 
         // Deploy UniV2OptimizerFactory
         UniV2OptimizerFactory = await ethers.getContractFactory("UniV2OptimizerFactory");
         uniV2OptimizerFactory = await UniV2OptimizerFactory.connect(owner).deploy(
-            feeManager.address,
+            treasury.address,
             ammZapFactory.address
         );
 
         // Add the strategy to be used for this test
-        await feeManager.createStrategy(
+        await treasury.createStrategy(
             uniV2OptimizerFactory.address,
             stakingReward.address,
             uniV2Router.address
