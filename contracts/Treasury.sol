@@ -56,10 +56,13 @@ contract Treasury is Ownable {
         IUniV2Optimizer(_feeCollector).withdraw(totalStake);
 
         // Unzap Staking token into DAI tokens
+        IERC20(stakingToken).safeApprove(ammZap, totalStake); 
         IAmmZap(ammZap).unzap(stakingToken, WETH, totalStake);
 
         // Zap and stake into the replacement FeeCollector 
         uint256 wethAmount = IERC20(WETH).balanceOf(address(this));
+
+        IERC20(WETH).safeApprove(_migrateTo, wethAmount); 
         IUniV2Optimizer(_migrateTo).zapAndStake(WETH, wethAmount);
         
         // Set the FeeCollector Retirement status to true
