@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 interface IUniV2OptimizerFactory {
  
-    function feeManager() external view returns (address);
+    function treasury() external view returns (address);
 
 
      function addStrategy(

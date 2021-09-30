@@ -10,11 +10,11 @@ import "./interfaces/IUniV2Optimizer.sol";
 import "./interfaces/IUniV2OptimizerFactory.sol";
 import './interfaces/IAmmZap.sol';
 
-contract FeeManager is Ownable {
+contract Treasury is Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
-    address constant WETH = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"; 
+    address constant WETH = 0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619; 
 
     // Mapping storing the previous amount of token staked (before dividends payment) of a given Fee Collector
     mapping(address => uint256) public previousFeeCollectorStake;
@@ -59,8 +59,8 @@ contract FeeManager is Ownable {
         IAmmZap(ammZap).unzap(stakingToken, WETH, totalStake);
 
         // Zap and stake into the replacement FeeCollector 
-        wethAmount = IERC20(WETH).balanceOf(address(this));
-        IUniV2Optimizer(_migrateTo).zapAndStake(WETH, daiAmount);
+        uint256 wethAmount = IERC20(WETH).balanceOf(address(this));
+        IUniV2Optimizer(_migrateTo).zapAndStake(WETH, wethAmount);
         
         // Set the FeeCollector Retirement status to true
         retirementStatus[_feeCollector] = true;

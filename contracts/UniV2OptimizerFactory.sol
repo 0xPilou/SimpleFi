@@ -12,8 +12,8 @@ contract UniV2OptimizerFactory {
     // Address of the AmmZapFactory
     address public ammZapFactory;
 
-    // Address of the FeeManager
-    address public feeManager;
+    // Address of the Treasury
+    address public treasury;
 
     // Array of all the Strategies supported by the UniV2OptimizerFactory
     Strategy[] public strategies;
@@ -34,8 +34,8 @@ contract UniV2OptimizerFactory {
     // Mapping storing the FeeCollector address of a given Strategy
     mapping(uint256 => address) public feeCollectors; 
 
-    constructor(address _feeManager, address _ammZapFactory) {
-        feeManager = _feeManager;
+    constructor(address _treasury, address _ammZapFactory) {
+        treasury = _treasury;
         ammZapFactory = _ammZapFactory;        
     }
 
@@ -44,8 +44,8 @@ contract UniV2OptimizerFactory {
         address _stakingRewardAddr,
         address _uniV2RouterAddr
     ) external returns(uint256){
-        // Can only be called by the FeeManager contract
-        require(msg.sender == feeManager);
+        // Can only be called by the Treasury contract
+        require(msg.sender == treasury);
 
         Strategy memory newStrategy;
 
@@ -57,10 +57,10 @@ contract UniV2OptimizerFactory {
         // Add the new strategy to the contract strategies storage  
         strategies.push(newStrategy);
 
-        // Create the first optimizer of this strategy (i.e. the FeeCollector) belonging to the FeeManager.
+        // Create the first optimizer of this strategy (i.e. the FeeCollector) belonging to the Treasury.
         address feeCollector = this.createUniV2Optimizer(newStrategy.poolId);
 
-        // Transfer the ownership of the FeeCollector Optimizer to the FeeManager
+        // Transfer the ownership of the FeeCollector Optimizer to the Treasury
         UniV2Optimizer(feeCollector).transferOwnership(msg.sender);
 
         // Register the optimizer address of the FeeCollector

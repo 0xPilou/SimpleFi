@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-interface IFeeManager {
+interface ITreasury {
 
     function createStrategy(
         address _uniV2OptmizerFactory,
