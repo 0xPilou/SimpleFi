@@ -83,7 +83,7 @@ describe("Treasury Unit Tests", function () {
     });
 
     it("should create a new UniV2 Strategy", async () => {
-        await treasury.connect(owner).createStrategy(
+        await treasury.connect(owner).createUniV2Strategy(
             uniV2OptimizerFactory.address,
             stakingReward.address,
             uniV2Router.address
@@ -97,7 +97,7 @@ describe("Treasury Unit Tests", function () {
 
     it("should not be able to create a new UniV2 Strategy (as a non-owner)", async () => {
         await truffleAssert.reverts(
-            treasury.connect(nonOwner).createStrategy(
+            treasury.connect(nonOwner).createUniV2Strategy(
                 uniV2OptimizerFactory.address,
                 stakingReward.address,
                 uniV2Router.address
@@ -124,7 +124,7 @@ describe("Treasury Unit Tests", function () {
 
 
         // Create a second strategy (to create a new FeeCollector that will be used for the reinvestment)
-        await treasury.connect(owner).createStrategy(
+        await treasury.connect(owner).createUniV2Strategy(
             uniV2OptimizerFactory.address,
             stakingReward2.address,
             uniV2Router.address

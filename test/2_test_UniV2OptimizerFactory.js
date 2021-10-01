@@ -69,7 +69,7 @@ describe("UniV2OptimizerFactory Unit Tests", function () {
     });
 
     it("should add a new strategy to the UniV2Optimizer Factory ", async () => {
-        await treasury.connect(owner).createStrategy(
+        await treasury.connect(owner).createUniV2Strategy(
             uniV2OptimizerFactory.address,
             stakingReward.address,
             uniV2Router.address
@@ -94,7 +94,7 @@ describe("UniV2OptimizerFactory Unit Tests", function () {
     });
     
     it("should get the number of strategy supported", async () => {
-        await treasury.connect(owner).createStrategy(
+        await treasury.connect(owner).createUniV2Strategy(
             uniV2OptimizerFactory.address,
             stakingReward.address,
             uniV2Router.address

@@ -119,7 +119,7 @@ describe("UniV2Optimizer Unit Tests", function () {
         );
 
         // Add the strategy to be used for this test
-        await treasury.createStrategy(
+        await treasury.createUniV2Strategy(
             uniV2OptimizerFactory.address,
             stakingReward.address,
             uniV2Router.address
