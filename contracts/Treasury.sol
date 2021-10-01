@@ -8,6 +8,7 @@ import 'openzeppelin-solidity/contracts/access/Ownable.sol';
 
 import "./interfaces/IUniV2Optimizer.sol";
 import "./interfaces/IUniV2OptimizerFactory.sol";
+import "./interfaces/IBeefyOptimizerFactory.sol";
 import './interfaces/IAmmZap.sol';
 
 contract Treasury is Ownable {
@@ -22,12 +23,19 @@ contract Treasury is Ownable {
     // Mapping storing the retirement status of a given FeeCollector
     mapping(address => bool) public retirementStatus;
 
-    function createStrategy(
+    function createUniV2Strategy(
         address _uniV2OptmizerFactory,
         address _stakingRewardAddr,
         address _uniV2RouterAddr
     ) external onlyOwner {
         IUniV2OptimizerFactory(_uniV2OptmizerFactory).addStrategy(_stakingRewardAddr, _uniV2RouterAddr);
+    }
+
+    function createBeefyStrategy(
+        address _beefyOptimizerFactory,
+        address _beefyVaultAddr
+    ) external onlyOwner {
+        IBeefyOptimizerFactory(_beefyOptimizerFactory).addStrategy(_beefyVaultAddr);
     }
 
     // Compounds the FeeCollector optimizer and pay the dividends to the stakers
