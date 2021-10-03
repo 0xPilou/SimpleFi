@@ -1,10 +1,10 @@
 // "SPDX-License-Identifier: UNLICENSED"
 pragma solidity ^0.8.0;
 
-interface BeefyOptimizerFactory {
+interface IBeefyOptimizerFactory {
 
 
-    function treasury() returns(address);
+    function treasury() external returns(address);
 
     function addStrategy(address _beefyVaultAddr) external returns(uint256);
 
