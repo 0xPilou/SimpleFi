@@ -8,7 +8,7 @@ import 'openzeppelin-solidity/contracts/utils/math/SafeMath.sol';
 import "./interfaces/IBeefyVault.sol";
 
 
-contract BeefyOptimizer {
+contract BeefyOptimizer is Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     
@@ -53,13 +53,13 @@ contract BeefyOptimizer {
     }
     
     function withdraw(uint256 _amount) external onlyOwner {
-        IBeefyVault(_beefyVaultAddr).withdraw(_amount);
+        IBeefyVault(beefyVaultAddr).withdraw(_amount);
         staked = staked.sub(_amount);
         IERC20(staking).safeTransfer(msg.sender, IERC20(staking).balanceOf(address(this)));
     }
    
     function withdrawAll() external onlyOwner {
-        IBeefyVault(_beefyVaultAddr).withdrawAll();
+        IBeefyVault(beefyVaultAddr).withdrawAll();
         staked = 0;
         if(IERC20(staking).balanceOf(address(this)) > 0){
             IERC20(staking).safeTransfer(msg.sender, IERC20(staking).balanceOf(address(this)));
@@ -74,7 +74,7 @@ contract BeefyOptimizer {
 
     function _stakeAll() internal {
         staked = staked.add(IERC20(staking).balanceOf(address(this)));
-        IBeefyVault(_beefyVaultAddr).depositAll();
+        IBeefyVault(beefyVaultAddr).depositAll();
     }
 
 //    // To review
