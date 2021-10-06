@@ -26,8 +26,9 @@ contract BeefyOptimizer is Ownable {
 
     address public feeCollector;
     address public parentFactory;
+    address public treasury;
     
-    uint256 public staked = 0;
+    uint256 public previousSharePrice;
 
     /**
      * @dev Initializes the strategy for the given protocol
@@ -39,6 +40,8 @@ contract BeefyOptimizer is Ownable {
         beefyVaultAddr = _beefyVaultAddr;
         feeCollector = _feeCollector;
         parentFactory = msg.sender;
+        treasury = IBeefyOptimizerFactory(parentFactory).treasury();
+
 
         staking = IBeefyVault(_beefyVaultAddr).want();
        
@@ -53,14 +56,16 @@ contract BeefyOptimizer is Ownable {
     }
     
     function withdraw(uint256 _amount) external onlyOwner {
+        _payPerformanceFees();
         IBeefyVault(beefyVaultAddr).withdraw(_amount);
-        staked = staked.sub(_amount);
+        previousSharePrice = IBeefyVault(beefyVaultAddr).getPricePerFullShare();
         IERC20(staking).safeTransfer(msg.sender, IERC20(staking).balanceOf(address(this)));
     }
    
     function withdrawAll() external onlyOwner {
+        _payPerformanceFees();
         IBeefyVault(beefyVaultAddr).withdrawAll();
-        staked = 0;
+
         if(IERC20(staking).balanceOf(address(this)) > 0){
             IERC20(staking).safeTransfer(msg.sender, IERC20(staking).balanceOf(address(this)));
         }
@@ -73,14 +78,28 @@ contract BeefyOptimizer is Ownable {
     }
 
     function _stakeAll() internal {
-        staked = staked.add(IERC20(staking).balanceOf(address(this)));
+        if(IBeefyVault(beefyVaultAddr).balance(address(this)) > 0){
+            _payPerformanceFees();
+        }
         IBeefyVault(beefyVaultAddr).depositAll();
+        previousSharePrice = IBeefyVault(beefyVaultAddr).getPricePerFullShare();
     }
+    
+    function _payPerformanceFees() internal {
+        // exclude the FeeCollectors from paying performance fees
+        if(feeCollector != address(0)){
+            // Calculate profit accumulated
+            uint256 currentSharePrice = IBeefyVault(beefyVaultAddr).getPricePerFullShare();
+            uint256 mooBalance = IBeefyVault(beefyVaultAddr).balance(address(this));
+            uint256 profit = mooBalance.mul(currentSharePrice.sub(previousSharePrice)).div(currentSharePrice);
 
-//    // To review
-//    function getPendingRewards() external view returns(uint256) {
-//        return IStakingRewards(stakingRewardAddr).earned(address(this));
-//    }
+            // Performance Fees = 10 % of the profit
+            uint256 performanceFees = profit.div(10);
+`
+            // Performance Fees sent to the FeeCollector 
+            IBeefyVault(beefyVaultAddr).transfer(feeCollector, performanceFees);
+        }
+    }
 
 //    function reinvest(address _desiredToken) external onlyOwner {
 //        require(_desiredToken != reward, "Reward token is already the expected token");
@@ -97,20 +116,5 @@ contract BeefyOptimizer is Ownable {
 //                block.timestamp.add(600)
 //            );
 //        }     
-//    }
-
-//    function _payPerformanceFees() internal {
-//        // exclude the FeeCollectors from paying performance fees
-//        if(feeCollector != address(0)){
-//            address treasury = IUniV2OptimizerFactory(parentFactory).treasury();
-//            uint256 rewardBalance = IERC20(reward).balanceOf(address(this));
-//
-//            // Performance Fees = 10 % of the yield
-//            uint256 performanceFees = rewardBalance.div(10);
-//
-//            // Performance Fees sent to the FeeCollector 
-//            IERC20(reward).safeTransfer(feeCollector, performanceFees);
-//            ITreasury(treasury).compoundFeeCollector(feeCollector);
-//        }
-//    }  
+//    } 
 }
