@@ -56,4 +56,9 @@ interface IBeefyVault {
      */
     function withdraw(uint256 _shares) external;
 
+    function transfer(address recipient, uint256 amount) external returns (bool);
+
+    function balanceOf(address account) external view returns (uint256);
+
+
 }
