@@ -163,30 +163,23 @@ describe("BeefyOptimizer Unit Tests", function () {
  
           // Checking the balances before the withdrawal operation
         const userBalBefore = await staking.balanceOf(owner.address);
+        const optimizerMooBefore = ethers.utils.formatEther(await beefyVault.balanceOf(beefyOptimizer.address));
         const poolBalBefore = await beefyVault.balance();
-        const feeBalBefore = await beefyVault.balanceOf(feeCollector.address);
-//        const dividendBalBefore = ethers.utils.formatEther(await staking.balanceOf(dividendRecipient.address));
  
           // Withdraw operation
         await beefyOptimizer.connect(owner).withdraw(weiAmountToWithdraw);
  
           // Checking the balances after the withdrawal operation
         const userBalAfter = await staking.balanceOf(owner.address);
+        const optimizerMooAfter = ethers.utils.formatEther(await beefyVault.balanceOf(beefyOptimizer.address));
         const poolBalAfter = await beefyVault.balance();
-        const feeBalAfter = await beefyVault.balanceOf(feeCollector.address);
-//        const dividendBalAfter = ethers.utils.formatEther(await staking.balanceOf(dividendRecipient.address));
- 
+        
         // Assertion #1 : User Balance After - User Balance Before = Withdraw Amount
         expect(userBalAfter > userBalBefore).to.equal(true, "User balance incorrect");
+        expect(optimizerMooBefore > optimizerMooAfter).to.equal(true, "User Moo balance incorrect");
  
         // Assertion #2 : Staking Pool Balance Before > Staking Pool Balance After
         expect(poolBalBefore > poolBalAfter).to.equal(true, "Pool balance incorrect");
- 
-        // Assertion #3 : Fee Collector Balance Before < Fee Collector Balance After
-        expect(feeBalBefore.toNumber() < feeBalAfter.toNumber()).to.equal(true, "Fees not accrued");
- 
-        // Assertion #4: Dividend Recipient Balance Before < Dividend Recipient Balance After
-        // expect(dividendBalBefore < dividendBalAfter).to.equal(true, "Dividends not accrued");
     });
  
     it("should withdraw all Staking tokens form the Beefy Vault", async () => {
@@ -194,8 +187,6 @@ describe("BeefyOptimizer Unit Tests", function () {
         // Checking the balances before the withdrawal operation
         const userLPBalBefore = await staking.balanceOf(owner.address);
         const poolBalBefore = await beefyVault.balance();
-        const feeBalBefore = await beefyVault.balanceOf(feeCollector.address);
-//        const dividendBalBefore = ethers.utils.formatEther(await staking.balanceOf(dividendRecipient.address));
 
         // withdraw all operation
         await beefyOptimizer.connect(owner).withdrawAll();
@@ -203,20 +194,12 @@ describe("BeefyOptimizer Unit Tests", function () {
         // Checking the balances after the withdrawal operation
         const userLPBalAfter = await staking.balanceOf(owner.address);
         const poolBalAfter = await beefyVault.balance();
-        const feeBalAfter = await beefyVault.balanceOf(feeCollector.address);
-//        const dividendBalAfter = ethers.utils.formatEther(await staking.balanceOf(dividendRecipient.address));
 
         // Assertion #1 : User LP Balance After > User LP Balance Before
         expect(userLPBalAfter > userLPBalBefore).to.equal(true);
        
         // Assertion #2 : Staking Pool Balance Before > Staking Pool Balance After
         expect(poolBalBefore > poolBalAfter).to.equal(true);
-
-        // Assertion #3 : Fee Collector Balance Before < Fee Collector Balance After
-        expect(feeBalBefore < feeBalAfter).to.equal(true, "Fees not accrued");
-        
-        // Assertion #4: Dividend Recipient Balance Before < Dividend Recipient Balance After
-//        expect(dividendBalBefore < dividendBalAfter).to.equal(true, "Dividends not accrued");
     });
 
     it("should recover the lost / airdropped TokenC from the BeefyOptimizer contract", async () => {
