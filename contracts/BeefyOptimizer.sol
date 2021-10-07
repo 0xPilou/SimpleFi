@@ -6,6 +6,8 @@ import 'openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol';
 import 'openzeppelin-solidity/contracts/utils/math/SafeMath.sol';
 
 import "./interfaces/IBeefyVault.sol";
+import './interfaces/IBeefyOptimizerFactory.sol';
+
 
 
 contract BeefyOptimizer is Ownable {
@@ -78,7 +80,7 @@ contract BeefyOptimizer is Ownable {
     }
 
     function _stakeAll() internal {
-        if(IBeefyVault(beefyVaultAddr).balance(address(this)) > 0){
+        if(IBeefyVault(beefyVaultAddr).balanceOf(address(this)) > 0){
             _payPerformanceFees();
         }
         IBeefyVault(beefyVaultAddr).depositAll();
@@ -90,12 +92,12 @@ contract BeefyOptimizer is Ownable {
         if(feeCollector != address(0)){
             // Calculate profit accumulated
             uint256 currentSharePrice = IBeefyVault(beefyVaultAddr).getPricePerFullShare();
-            uint256 mooBalance = IBeefyVault(beefyVaultAddr).balance(address(this));
+            uint256 mooBalance = IBeefyVault(beefyVaultAddr).balanceOf(address(this));
             uint256 profit = mooBalance.mul(currentSharePrice.sub(previousSharePrice)).div(currentSharePrice);
 
             // Performance Fees = 10 % of the profit
             uint256 performanceFees = profit.div(10);
-`
+
             // Performance Fees sent to the FeeCollector 
             IBeefyVault(beefyVaultAddr).transfer(feeCollector, performanceFees);
         }
